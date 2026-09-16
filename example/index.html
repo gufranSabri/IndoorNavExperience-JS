@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <title>Indoor Wayfinding — First-Person Demo</title>
+  <style>
+    html { height: 100%; }
+    body {
+      height: 100vh;
+      height: 100dvh; /* actual visible viewport on mobile browsers, ignored by browsers that don't support it */
+      margin: 0;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #10151d;
+      color: #1c2430;
+      display: flex;
+      flex-direction: column;
+      overscroll-behavior: none; /* stop a stray page-level bounce/pull-to-refresh from fighting the drag-to-look gesture */
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    header {
+      padding: 14px 20px;
+      padding-top: calc(14px + env(safe-area-inset-top));
+      padding-left: calc(20px + env(safe-area-inset-left));
+      padding-right: calc(20px + env(safe-area-inset-right));
+      background: #0e1420;
+      color: #f2f5fa;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid #1e2735;
+    }
+    header h1 { font-size: 16px; margin: 0; font-weight: 600; }
+    header p { margin: 2px 0 0; font-size: 12px; color: #9aa7bd; }
+
+    #selector-bar {
+      background: #f4f6fa;
+      padding: 12px 20px;
+      padding-left: calc(20px + env(safe-area-inset-left));
+      padding-right: calc(20px + env(safe-area-inset-right));
+      border-bottom: 1px solid #dde3ec;
+    }
+
+    @media (max-width: 480px) {
+      header { padding: 10px 14px; padding-top: calc(10px + env(safe-area-inset-top)); }
+      header p { display: none; }
+      #selector-bar { padding: 10px 14px; }
+    }
+
+    #view-wrap {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+    }
+    #view {
+      position: absolute;
+      inset: 0;
+    }
+
+    #hint {
+      position: absolute;
+      top: 14px;
+      left: 20px;
+      color: #f2f5fa;
+      background: rgba(14, 20, 32, 0.55);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      pointer-events: none;
+      max-width: 280px;
+    }
+
+    #controls-bar {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: calc(22px + env(safe-area-inset-bottom));
+      display: flex;
+      justify-content: center;
+      padding: 0 16px;
+      pointer-events: none;
+    }
+    #controls-bar > * { pointer-events: auto; }
+    .wf-controls {
+      background: rgba(255, 255, 255, 0.92);
+      padding: 12px 20px;
+      border-radius: 18px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+      width: min(520px, 100%);
+    }
+
+    @media (max-width: 480px) {
+      #hint { top: 10px; left: 12px; font-size: 11px; max-width: 60vw; }
+      #controls-bar { bottom: calc(14px + env(safe-area-inset-bottom)); }
+      .wf-controls { padding: 10px 14px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Indoor Wayfinding — Floor 5</h1>
+      <p>Pure JS ES modules, vendored Three.js, no build step or CDN.</p>
+    </div>
+  </header>
+
+  <div id="selector-bar"></div>
+
+  <div id="view-wrap">
+    <div id="view"></div>
+    <div id="hint">Drag to look around · hold the arrows to walk the route</div>
+    <div id="controls-bar"></div>
+  </div>
+
+  <!--
+    Native ES modules, loaded straight from the src/ folder — no bundler,
+    no npm, no CDN. Three.js itself is vendored at src/vendor/three.module.js
+    and imported by src/*.js via a plain relative path, so this works from
+    any static file server (or a .NET wwwroot) with zero build step.
+  -->
+  <script type="module">
+    import { WayfindingView, WayfindingControls, RouteSelector } from '../src/index.js';
+
+    // All three components share one event target (the view element),
+    // so the selector and controls never need a reference to each other
+    // or to the view instance — only to this DOM node.
+    const viewEl = document.getElementById('view');
+
+    const view = new WayfindingView(viewEl, {
+      eventTarget: viewEl,
+      stepMeters: 1.2,
+    });
+
+    const selector = new RouteSelector(document.getElementById('selector-bar'), {
+      eventTarget: viewEl,
+    });
+
+    const controls = new WayfindingControls(document.getElementById('controls-bar'), {
+      eventTarget: viewEl,
+    });
+
+    view.loadFloor('./data/floor5/').catch((err) => {
+      console.error(err);
+      viewEl.insertAdjacentHTML(
+        'beforeend',
+        `<p style="color:#fff;padding:20px">Failed to load floor data: ${err.message}</p>`
+      );
+    });
+  </script>
+</body>
+</html>
