@@ -11,16 +11,12 @@ export const CEILING_HEIGHT = WALL_HEIGHT_EXTERNAL; // one flat ceiling plane fo
 export const CEILING_TILE_METERS = 0.6;
 export const CEILING_COLOR = 0xf5f4f0;
 
-// Interior "room light" fixtures — needed because the ceiling blocks the
-// sun/hemisphere lighting that lit the interior back when the floor was
-// open-top, so first-person walking still needs to read as a lit room.
+// Decorative ceiling fixtures — unlit discs (not real THREE.Lights; see
+// buildInteriorFixtures) placed on a grid across the ceiling.
 export const INTERIOR_LIGHT_SPACING = 4.4; // meters between ceiling fixtures on the placement grid
 export const INTERIOR_LIGHT_HEIGHT_OFFSET = 0.2; // meters below the ceiling
 export const INTERIOR_LIGHT_COLOR = 0xfff2da;
-export const INTERIOR_LIGHT_INTENSITY = 2.4;
-export const INTERIOR_LIGHT_DISTANCE = 6.5;
 export const INTERIOR_LIGHT_MAX_COUNT = 90;
-export const INTERIOR_LIGHT_ACTIVE_RADIUS = 7; // meters — only fixtures this close to the walker are ever lit at once
 
 // Sliding glass doors: two leaves that retract into the flanking wall as
 // the walker approaches and slide shut again once they move away.

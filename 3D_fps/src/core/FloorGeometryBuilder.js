@@ -21,8 +21,6 @@ import {
   INTERIOR_LIGHT_SPACING,
   INTERIOR_LIGHT_HEIGHT_OFFSET,
   INTERIOR_LIGHT_COLOR,
-  INTERIOR_LIGHT_INTENSITY,
-  INTERIOR_LIGHT_DISTANCE,
   INTERIOR_LIGHT_MAX_COUNT,
   DOOR_OPEN_DISTANCE,
   DOOR_CLOSE_DISTANCE,
@@ -393,11 +391,17 @@ function buildCeiling(outerWorld, ceilingTexture) {
   return group;
 }
 
-function buildInteriorLights(outerWorld, exclusionPolygons) {
+// Purely decorative ceiling fixtures — a merged, unlit (MeshBasicMaterial)
+// disc per grid point, so they read as lit panels without ever being real
+// THREE.Light sources. An earlier version used actual PointLights toggled
+// on/off by proximity, but flipping a light's `.visible` forces three.js to
+// recompile the shader program for every material it affects — doing that
+// every frame as the walker moved caused real stutter, so this floor has no
+// dynamic lights at all now; ambient/hemisphere light covers the interior.
+function buildInteriorFixtures(outerWorld, exclusionPolygons) {
   const group = new THREE.Group();
   group.name = 'interior-lights';
-  const lights = [];
-  if (outerWorld.length < 3) return { group, lights };
+  if (outerWorld.length < 3) return group;
 
   let minX = Infinity;
   let maxX = -Infinity;
@@ -411,7 +415,7 @@ function buildInteriorLights(outerWorld, exclusionPolygons) {
   }
 
   const fixtureMaterial = new THREE.MeshBasicMaterial({ color: INTERIOR_LIGHT_COLOR });
-  const lightY = CEILING_HEIGHT - INTERIOR_LIGHT_HEIGHT_OFFSET;
+  const fixtureY = CEILING_HEIGHT - INTERIOR_LIGHT_HEIGHT_OFFSET;
   const fixtureGeometries = [];
 
   let count = 0;
@@ -421,20 +425,9 @@ function buildInteriorLights(outerWorld, exclusionPolygons) {
       if (!pointInPolygon(point, outerWorld)) continue;
       if (exclusionPolygons.some((poly) => pointInPolygon(point, poly))) continue;
 
-      const light = new THREE.PointLight(
-        INTERIOR_LIGHT_COLOR,
-        INTERIOR_LIGHT_INTENSITY,
-        INTERIOR_LIGHT_DISTANCE,
-        2
-      );
-      light.position.set(x, lightY, z);
-      light.visible = false; // activated per-frame only near the walker — see cullInteriorLights()
-      group.add(light);
-      lights.push(light);
-
       const fixtureGeo = new THREE.CircleGeometry(0.22, 20);
       fixtureGeo.rotateX(Math.PI / 2);
-      fixtureGeo.translate(x, lightY + 0.01, z);
+      fixtureGeo.translate(x, fixtureY, z);
       fixtureGeometries.push(fixtureGeo);
 
       count += 1;
@@ -447,7 +440,7 @@ function buildInteriorLights(outerWorld, exclusionPolygons) {
     group.add(fixturesMesh);
   }
 
-  return { group, lights };
+  return group;
 }
 
 function buildObjectsGroup(objects, projector) {
@@ -536,24 +529,10 @@ export function buildFloorScene(floorDocument, projector) {
   ceilingGroup.visible = false; // shown only once the walker goes first-person — see WayfindingView
   root.add(ceilingGroup);
 
-  const { group: interiorLightsGroup, lights: interiorLights } = buildInteriorLights(outerWorld, exclusionPolygons);
+  const interiorLightsGroup = buildInteriorFixtures(outerWorld, exclusionPolygons);
   interiorLightsGroup.visible = false;
   root.add(interiorLightsGroup);
 
   const box = new THREE.Box3().setFromObject(root);
-  return { root, boundingBox: box, doorStates, instancedLeaves, ceilingGroup, interiorLightsGroup, interiorLights };
-}
-
-// Only lights within range of the walker are turned on each frame — with a
-// grid covering the whole floor there can be dozens of fixtures, and every
-// *visible* THREE.Light adds a per-fragment shading term, so capping how
-// many are ever simultaneously active keeps this cheap regardless of floor
-// size. Called every frame; cheap since it's just a distance check per light.
-export function cullInteriorLights(lights, viewerX, viewerZ, activeRadius) {
-  const r2 = activeRadius * activeRadius;
-  for (const light of lights) {
-    const dx = light.position.x - viewerX;
-    const dz = light.position.z - viewerZ;
-    light.visible = dx * dx + dz * dz < r2;
-  }
+  return { root, boundingBox: box, doorStates, instancedLeaves, ceilingGroup, interiorLightsGroup };
 }

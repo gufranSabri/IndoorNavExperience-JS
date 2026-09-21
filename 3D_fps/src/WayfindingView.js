@@ -1,6 +1,6 @@
 import * as THREE from './vendor/three.module.js';
 import { createProjector } from './core/coords.js';
-import { buildFloorScene, updateDoorStates, cullInteriorLights } from './core/FloorGeometryBuilder.js';
+import { buildFloorScene, updateDoorStates } from './core/FloorGeometryBuilder.js';
 import { PathRenderer } from './core/PathRenderer.js';
 import { WalkController } from './core/WalkController.js';
 import { CameraRig } from './core/CameraRig.js';
@@ -13,7 +13,6 @@ import {
   SKY_TOP_COLOR,
   SKY_HORIZON_COLOR,
   SKY_GROUND_COLOR,
-  INTERIOR_LIGHT_ACTIVE_RADIUS,
 } from './core/constants.js';
 
 export const MOVE_EVENT = 'wayfinding:move';
@@ -89,7 +88,6 @@ export class WayfindingView {
     this.instancedLeaves = null;
     this.ceilingGroup = null;
     this.interiorLightsGroup = null;
-    this.interiorLights = [];
     this.route = null; // { startId, destinationId }
     this.mode = 'overview'; // 'overview' | 'walking'
     this._holdDirection = null; // set by move-start/move-stop, drives continuous walking each frame
@@ -163,14 +161,15 @@ export class WayfindingView {
 
     const { boundary } = floorData;
     this.projector = createProjector(boundary.image, boundary.scale?.metersPerPixel);
-    const { root, boundingBox, doorStates, instancedLeaves, ceilingGroup, interiorLightsGroup, interiorLights } =
-      buildFloorScene(boundary, this.projector);
+    const { root, boundingBox, doorStates, instancedLeaves, ceilingGroup, interiorLightsGroup } = buildFloorScene(
+      boundary,
+      this.projector
+    );
     this.floorGroup = root;
     this.doorStates = doorStates;
     this.instancedLeaves = instancedLeaves;
     this.ceilingGroup = ceilingGroup;
     this.interiorLightsGroup = interiorLightsGroup;
-    this.interiorLights = interiorLights;
     this.scene.add(root);
 
     this.pathIndex = buildPathIndex(floorData.paths);
@@ -303,9 +302,6 @@ export class WayfindingView {
 
     if (this.doorStates.length) {
       updateDoorStates(this.doorStates, this.instancedLeaves, this.camera.position.x, this.camera.position.z, dt);
-    }
-    if (this.mode === 'walking' && this.interiorLights.length) {
-      cullInteriorLights(this.interiorLights, this.camera.position.x, this.camera.position.z, INTERIOR_LIGHT_ACTIVE_RADIUS);
     }
 
     if (this.mode === 'walking') {
