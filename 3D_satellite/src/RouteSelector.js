@@ -1,4 +1,5 @@
 import { icon } from './ui/icons.js';
+import { isGenericRoomLabel } from './core/FloorDataLoader.js';
 import {
   FLOOR_LOADED_EVENT,
   ROUTE_CHANGE_EVENT,
@@ -6,6 +7,7 @@ import {
   ROUTE_CLEARED_EVENT,
   ROUTE_SET_EVENT,
   ROUTE_ERROR_EVENT,
+  ROOM_SELECT_EVENT,
 } from './core/events.js';
 
 const STYLE = `
@@ -14,6 +16,8 @@ const STYLE = `
   --text: var(--sat-text, #eef1f5); --muted: var(--sat-muted, #98a2b3); --border: var(--sat-border, rgba(255,255,255,.09));
   font-family: var(--sat-font, Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif);
   color: var(--text); width: 100%;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 .sat-route-fields { display: flex; align-items: stretch; gap: 10px; }
 .sat-route-rail { display: flex; flex-direction: column; align-items: center; padding: 19px 0 17px; width: 16px; flex: none; }
@@ -133,6 +137,7 @@ export class RouteSelector {
       },
       [ROUTE_SET_EVENT]: (e) => this._showSummary(e.detail),
       [ROUTE_CLEARED_EVENT]: () => this.root.classList.remove('has-route'),
+      [ROOM_SELECT_EVENT]: (e) => this._onRoomSelect(e.detail),
     };
     for (const [type, fn] of Object.entries(this._handlers)) this.eventTarget.addEventListener(type, fn);
 
@@ -184,12 +189,24 @@ export class RouteSelector {
   }
 
   setNodes(nodes) {
-    this.nodes = nodes.filter((n) => n.reachable);
+    // A room the editor never gave a real name to ("Room 7") isn't worth
+    // offering as a destination — only its category-less placeholder name,
+    // never something an actual visitor would search for.
+    this.nodes = nodes.filter((n) => n.reachable && !(n.class === 'room' && isGenericRoomLabel(n.label)));
     this._fill(this.startSelect, 'Choose starting point');
     this._fill(this.destSelect, 'Choose destination');
     if (!this.startSelect.value && this.defaultStartId && this.nodes.some((n) => n.id === this.defaultStartId)) {
       this.startSelect.value = this.defaultStartId;
     }
+  }
+
+  // Clicking a box on the map (SatelliteView.selectRoom) picks it as the
+  // destination here, same as choosing it from the dropdown. A room excluded
+  // from the destination list (still named "Room N") is silently ignored.
+  _onRoomSelect(detail) {
+    if (!detail?.nodeId || !this.nodes.some((n) => n.id === detail.nodeId)) return;
+    this.destSelect.value = detail.nodeId;
+    this._emitChange();
   }
 
   _emitChange() {

@@ -54,6 +54,15 @@ export function buildRouteNodes(floorData) {
   });
 }
 
+// Unclassified rooms the editor never got a real name for keep its
+// auto-generated placeholder ("Room 7"). Neither showing that on the map nor
+// offering it as a searchable destination is useful, so both the label layer
+// and the route selector skip anything named like that — regardless of its
+// category, since a placeholder name can carry any category or none at all.
+export function isGenericRoomLabel(label) {
+  return typeof label === 'string' && label.startsWith('Room');
+}
+
 // paths.json stores one entry per unordered reachable pair; index both
 // directions so route lookups between any two selected nodes are O(1).
 export function buildPathIndex(pathsDoc) {

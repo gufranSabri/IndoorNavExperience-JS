@@ -23,6 +23,12 @@ python3 -m http.server 8080
 
 Open `http://localhost:8080/example/index.html` (`fetch()` needs `http://`, not `file://`).
 
+The example's sample data lives at `example/data/floors/{buildingId}/{floorId}/`,
+mirroring the Editor's own on-disk layout (see
+[../docs/MAP_DATA_STORAGE.md](../docs/MAP_DATA_STORAGE.md) §2) — the app itself
+only ever reads whatever four-file folder `loadFloor(url)` is pointed at, so a
+host can lay its own data out however it likes.
+
 ## What you see
 
 | Element | How it is drawn |
@@ -31,27 +37,34 @@ Open `http://localhost:8080/example/index.html` (`fetch()` needs `http://`, not 
 | Base | The building outline grown by 1.7 m with rounded corners, extruded as a slab |
 | Boundary walls | The outer `Wall External` ring as one continuous, thick, light-gray band with rounded corners, and door gaps cut where external doors exist |
 | Rooms | One extruded slate block per room with rounded corners and a chamfered top edge, slightly shorter than the walls. Category adds only a whisper of tint |
-| Open offices | **Not built** (`OPEN_CATEGORIES`): they stay open floor but keep a label |
-| Internal walls | **Not drawn.** Each room is inset by half of `ROOM_GAP`, so two rooms sharing a wall end up a thin gap apart |
+| Open offices | **Not built** (`OPEN_CATEGORIES`: `open_office`, `sub_open_office`): they stay open floor but keep a label |
+| Internal walls | Not drawn. Each room is inset by half of `ROOM_GAP`, so two rooms sharing a wall end up a thin gap apart |
 | Open space | Not drawn — the base shows through (`floor_space` rooms are skipped) |
-| Exclusion zone | The floor is cut open there: a black stairwell shaft going down |
-| Stairs | The floor-scope stair flights and landings, built as real steps descending *below* the floor into the shaft, fading from light stone to black with depth |
-| Labels | Category icon + name at each room's visual center, shown only once zoomed in (see below) |
-| Route | Thick blue ribbon with a border and glow, drawn on with an animation, white chevrons flowing along it; the walked part greys out |
+| Exclusion zone | On any floor but the lowest, the floor is cut open there: a black stairwell shaft going down. On the lowest floor (`is_lowest_floor`) there is nothing below to reveal, so instead the same zone's stairs simply climb up out of solid ground — no hole at all |
+| Stairs | The floor-scope stair flights and landings, built as real steps — descending *below* the floor into a shaft on every other floor, fading from light stone to black with depth, or climbing *above* solid ground on the lowest floor |
+| Labels | Category icon + name at each room's visual center, shown only once zoomed in (see below). A room the editor never renamed off its auto-generated placeholder (`"Room 7"`) gets no label and isn't offered as a search result — only a real name counts |
+| Route | Thick blue ribbon with a border and glow, drawn on with an animation, white chevrons flowing along it; the walked part greys out. It follows stairs up/down via the same `heightAt(x, z)` the stairs report |
 | You are here | Blue dot, white ring, pulsing halo and a heading beam — a DOM element, so it stays crisp at any zoom |
 | Destination | Red pin with the place name |
 
 Rooms the route passes through (and the start / destination rooms) turn into
 outlined glass so the line stays visible inside them.
 
-### Stairs
+### Stairs & `is_lowest_floor`
 
-Segments in `floor_scope.segments` are stair flights and landings with a
-vertical `order`. A flight's top edge is the one touching an exclusion exit or a
-lower-order segment; its steps run away from that edge. Flights of the same
-order drop by the same amount, landings are flat. `heightAt(x, z)` reports the
-walking surface, so the route ribbon, the "you are here" dot and labels follow
-the stairs down instead of floating over the shaft.
+Segments in `floor_scope.segments` are stair flights and landings, scoped to
+one `exclusion_area_id` — a floor can have several independent stair cores,
+each numbering its own `order` sequence from 1 (§5). A flight's near edge is
+whichever one touches that zone's own exclusion exit or an earlier-order
+segment; its steps run away from that edge, and flights sharing an order move
+together. `floor_scope.is_lowest_floor` (a plain toggle on the Floor Scope
+page) flips every zone on the floor between the two directions: normally a
+zone's stairs descend into a shaft dug into the base (there being a real floor
+below to reveal); on the lowest floor there's nothing below, so the same zone's
+stairs instead climb *up* from solid ground and no shaft is cut at all.
+`heightAt(x, z)` reports the walking surface either way, so the route ribbon,
+the "you are here" dot and labels follow the stairs instead of floating over
+(or under) them.
 
 ### Labels
 
@@ -61,7 +74,8 @@ Labels are hidden while the whole building is in view. Once you zoom in a little
 - a full label (icon + name) if the room is big enough on screen,
 - an icon-only badge if it is small,
 - nothing if it is smaller still, or if a bigger room's label would overlap it,
-- nothing for a room hidden behind the tall boundary wall.
+- nothing for a room hidden behind the tall boundary wall,
+- nothing for a room still carrying its auto-generated `"Room N"` placeholder name.
 
 ## Interaction
 
@@ -91,8 +105,8 @@ src/
 ├── RouteControls.js       play / pause / scrub bar for previewing the route
 ├── core/
 │   ├── constants.js       every tunable: colors, heights, gaps, camera limits
-│   ├── BuildingBuilder.js base, boundary walls, room solids, stairwell
-│   ├── StairsBuilder.js   stair flights/landings, depth shading, heightAt()
+│   ├── BuildingBuilder.js base, boundary walls, room solids, stairwell(s)
+│   ├── StairsBuilder.js   per-zone stair flights/landings, up or down, heightAt()
 │   ├── shapes.js          footprint -> extruded solid helpers
 │   ├── polygon.js         offsetting, corner rounding, self-loop removal, pole-of-inaccessibility
 │   ├── MapControls.js     the OSM-style camera and gestures
@@ -132,7 +146,7 @@ no pathfinding of its own.
 <script type="module">
   import { SatelliteView } from './satellite/index.js';
   const view = new SatelliteView(document.getElementById('map'));
-  view.loadFloor('/floors/5/').then(() => view.setUserNode('exits-0'));
+  view.loadFloor('/floors/2/1/').then(() => view.setUserNode('exits-0'));
 </script>
 ```
 
@@ -148,7 +162,7 @@ camera frames things in the free area — see [example/index.html](example/index
 
 All in [src/core/constants.js](src/core/constants.js): `COLORS`, `WALL_HEIGHT`,
 `ROOM_HEIGHT`, `ROOM_GAP`, `WALL_THICKNESS`, the `*_CORNER_RADIUS` values, `BASE_MARGIN`,
-`CATEGORY_TINT`, `STAIR_RISE` / `STAIR_TREAD`, category / object
-icons and colors (`CATEGORY_STYLE`, `OBJECT_STYLE`), camera limits, and route
-width / corner radius / animation speed. Heights are deliberately a little
-taller than real life so the model reads well from above.
+`CATEGORY_TINT`, `STAIR_RISE` / `STAIR_TREAD`, `DEFAULT_VOID_DEPTH`, category /
+object icons and colors (`CATEGORY_STYLE`, `OBJECT_STYLE`), camera limits, and
+route width / corner radius / animation speed. Heights are deliberately a
+little taller than real life so the model reads well from above.

@@ -1,0 +1,48 @@
+{
+  "meta": {
+    "scale": {
+      "metersPerPixel": 0.036816140195861866
+    },
+    "grid": {
+      "width": 200,
+      "height": 198
+    },
+    "padding": {
+      "meters": 0.4,
+      "imagePx": 10.8648
+    },
+    "weighting": true,
+    "counts": {
+      "nodes": 1,
+      "walls": 188,
+      "doors": 62
+    },
+    "note": "client-side preview (pathsGraph.js)"
+  },
+  "nodes": [
+    {
+      "id": "exits-0",
+      "class": "exits",
+      "centroid_px": [
+        998.8261,
+        1082.0632
+      ],
+      "reachable": false
+    }
+  ],
+  "node_index": [
+    "exits-0"
+  ],
+  "distance_matrix": {
+    "unit": "meters",
+    "order": [
+      "exits-0"
+    ],
+    "symmetric": true,
+    "values": [
+      [
+        null
+      ]
+    ]
+  }
+}

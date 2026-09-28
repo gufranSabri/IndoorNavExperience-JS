@@ -21,6 +21,8 @@ const STYLE = `
   width: min(460px, calc(100vw - 32px));
   opacity: 0; transform: translateY(16px); pointer-events: none;
   transition: opacity .35s ease, transform .4s cubic-bezier(.2,.9,.3,1.1);
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 .sat-player.is-visible { opacity: 1; transform: none; pointer-events: auto; }
 .sat-player-btn {

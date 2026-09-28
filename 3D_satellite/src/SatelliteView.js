@@ -3,7 +3,7 @@ import { createProjector } from './core/coords.js';
 import { buildBuilding } from './core/BuildingBuilder.js';
 import { MapControls, fitDistanceForPoints } from './core/MapControls.js';
 import { RouteRenderer } from './core/RouteRenderer.js';
-import { loadFloorData, buildRouteNodes, buildPathIndex, findRoute } from './core/FloorDataLoader.js';
+import { loadFloorData, buildRouteNodes, buildPathIndex, findRoute, isGenericRoomLabel } from './core/FloorDataLoader.js';
 import { pointInPolygon } from './core/polygon.js';
 import { LabelLayer } from './ui/LabelLayer.js';
 import { UserMarker, DestinationPin } from './ui/Markers.js';
@@ -19,8 +19,10 @@ import {
   CAMERA_MIN_DISTANCE,
   CAMERA_MAX_DISTANCE_FACTOR,
   LABEL_ZOOM_DISTANCE_FACTOR,
+  INTRO_ZOOM_DISTANCE_FACTOR,
   PLAYBACK_MPS,
   WALK_MPS,
+  GLASS_OPACITY,
 } from './core/constants.js';
 import {
   ROUTE_CHANGE_EVENT,
@@ -240,7 +242,7 @@ export class SatelliteView {
     const { rooms, areas, objects, heightAt } = this.building;
     const items = [];
     for (const room of rooms) {
-      if (room.restricted) continue;
+      if (room.restricted || isGenericRoomLabel(room.name)) continue;
       items.push({
         id: room.id,
         kind: 'room',
@@ -253,15 +255,17 @@ export class SatelliteView {
         priority: room.area,
       });
     }
-    // Open floor has no roof to put a label on, so it sits on the floor.
+    // An open office now has a (translucent) roof of its own to sit on; only
+    // a mesh-less area (e.g. one too small to build) falls back to the floor.
     for (const area of areas) {
+      if (isGenericRoomLabel(area.name)) continue;
       items.push({
         id: area.id,
         kind: 'room',
         name: area.name,
         style: area.style,
         x: area.center.x,
-        y: heightAt(area.center.x, area.center.z) + 0.4,
+        y: area.mesh ? BASE_HEIGHT + area.height + 0.05 : heightAt(area.center.x, area.center.z) + 0.4,
         z: area.center.z,
         radius: area.radius,
         priority: area.area,
@@ -284,7 +288,9 @@ export class SatelliteView {
   }
 
   // The first frame after loading: start from a distant top-down view and
-  // ease into the tilted overview.
+  // ease into the tilted overview — close enough that room labels are
+  // already on by the time it settles (INTRO_ZOOM_DISTANCE_FACTOR sits
+  // inside the LABEL_ZOOM_DISTANCE_FACTOR reveal threshold).
   _maybeIntro() {
     if (!this._pendingIntro || !this.container.clientWidth || !this.container.clientHeight) return;
     this._pendingIntro = false;
@@ -292,7 +298,7 @@ export class SatelliteView {
     const c = this.fitCenter;
     this.controls.set({ x: c.x, z: c.z, distance: this.fitDistance * 1.55, pitch: 0, bearing: -18 * DEG });
     this.controls.flyTo(
-      { x: c.x, z: c.z, distance: this.fitDistance, pitch: CAMERA_DEFAULT_PITCH * DEG, bearing: 0 },
+      { x: c.x, z: c.z, distance: this.fitDistance * INTRO_ZOOM_DISTANCE_FACTOR, pitch: CAMERA_DEFAULT_PITCH * DEG, bearing: 0 },
       2.4
     );
   }
@@ -568,16 +574,13 @@ export class SatelliteView {
     this.selectRoom(room ? room.id : null);
   }
 
+  // Clicking a box selects it as a destination (see RouteSelector, which
+  // listens for this event) but no longer changes how the box looks — its
+  // permanent category color already carries the old "you clicked me" look.
   selectRoom(id) {
     if (id === this.selectedRoomId) id = null;
-    const prev = this.building?.rooms.find((r) => r.id === this.selectedRoomId);
-    if (prev) prev.target.select = 0;
     this.selectedRoomId = id;
     const room = this.building?.rooms.find((r) => r.id === id);
-    if (room) room.target.select = 1;
-    this.labels.setSelected(id);
-    this._animatingRooms = true;
-    this._cameraDirty = true;
     this._emit(ROOM_SELECT_EVENT, room ? { id: room.id, nodeId: room.nodeId, name: room.name, category: room.category } : { id: null });
   }
 
@@ -591,7 +594,7 @@ export class SatelliteView {
     for (const room of this.building.rooms) {
       const { state, target, material, mesh, edges } = room;
       let changed = false;
-      for (const key of ['hover', 'glass', 'accent', 'select']) {
+      for (const key of ['hover', 'glass', 'accent']) {
         const diff = target[key] - state[key];
         if (Math.abs(diff) < 0.003) {
           if (state[key] !== target[key]) {
@@ -608,12 +611,14 @@ export class SatelliteView {
 
       tint.set(COLORS.hover);
       material.color.copy(room.baseColor).lerp(tint, state.hover * 0.16);
-      tint.set(COLORS.accent);
-      material.color.lerp(tint, Math.max(state.accent * 0.5, state.select * 0.26));
-      material.emissiveIntensity = state.accent * 0.08 + state.select * 0.1 + state.hover * 0.05;
+      // Being on the active route (start/destination/crossed) tints red, not
+      // the accent blue — blue is now permanently what an open office looks like.
+      tint.set(COLORS.destination);
+      material.color.lerp(tint, state.accent * 0.5);
+      material.emissiveIntensity = room.emissiveFloor + state.accent * 0.08 + state.hover * 0.05;
 
       const glass = state.glass > 0.01;
-      material.opacity = 1 - 0.68 * state.glass;
+      material.opacity = 1 - (1 - GLASS_OPACITY) * state.glass;
       if (material.transparent !== glass) {
         material.transparent = glass;
         material.needsUpdate = true;
@@ -625,7 +630,7 @@ export class SatelliteView {
         mesh.castShadow = shadowCaster;
         this._shadowDirty = true;
       }
-      const outline = Math.max(state.glass * 0.9, state.select);
+      const outline = Math.max(state.glass * 0.9, room.outlineFloor);
       edges.visible = outline > 0.01;
       edges.material.opacity = outline;
     }
@@ -681,7 +686,6 @@ export class SatelliteView {
       this.pixelsPerMeter = this.height / 2 / (this.controls.distance * tanHalfFov);
       this.routeRenderer.update(dt, this.pixelsPerMeter);
 
-      const cameraMoved = this._cameraDirty;
       if (this._cameraDirty && this.building) {
         this._cameraDirty = false;
         const labelsOn = this.controls.distance < this.fitDistance * LABEL_ZOOM_DISTANCE_FACTOR;
@@ -692,8 +696,11 @@ export class SatelliteView {
         this.controlsUI?.update(this.controls.bearing, this.controls.pitch);
       }
 
-      // Idle frames (no camera motion, no route animating) are skipped entirely.
-      if (this.building && (cameraMoved || roomsChanged || this.routeRenderer.hasRoute || this._shadowDirty)) {
+      // Always present a fresh frame — a WebGL canvas that goes a while
+      // without a render() call can have its backbuffer discarded by the
+      // browser/GPU, which then shows as the whole scene flashing black.
+      // Only the (expensive) shadow-map recompute is skipped when idle.
+      if (this.building) {
         if (this._shadowDirty || roomsChanged) {
           this.renderer.shadowMap.needsUpdate = true;
           this._shadowDirty = false;

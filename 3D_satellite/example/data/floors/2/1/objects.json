@@ -1,0 +1,19 @@
+{
+  "exits": [
+    {
+      "x": 693.2709,
+      "y": 323.8616,
+      "label": "Main Exit"
+    },
+    {
+      "x": 290.6222,
+      "y": 653.7121,
+      "label": "Emergency Exit"
+    },
+    {
+      "x": 1094.0601,
+      "y": 667.571,
+      "label": "Emergency Exit"
+    }
+  ]
+}

@@ -11,6 +11,7 @@ export const SATELLITE_STYLE = `
   font-family: var(--sat-font);
   -webkit-font-smoothing: antialiased;
   user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation; /* the canvas itself already gets touch-action: none from MapControls */
 }
 .sat-root canvas { display: block; width: 100%; height: 100%; }
 .sat-overlay { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }

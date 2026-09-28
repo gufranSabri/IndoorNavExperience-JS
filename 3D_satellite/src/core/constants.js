@@ -19,35 +19,56 @@ export const COLORS = {
   wall: 0xe9ecf0,
   room: 0x50565f,
   exclusion: 0x000000,
-  accent: 0x4285f4, // google-maps blue
+  accent: 0x4285f4, // google-maps blue — the route line itself, and open-office boxes
   hover: 0x8ab4f8,
   destination: 0xea4335,
 };
 
-// Room roofs are a neutral slate with a whisper of the category color.
+// Room roofs are a neutral slate with a whisper of the category color (used
+// for label icon badges — see ROOM_CATEGORY_COLOR below for the box fill itself).
 export const CATEGORY_STYLE = {
   closed_office: { label: 'Office', color: '#6ea8fe', icon: 'briefcase' },
   open_office: { label: 'Open office', color: '#4fd1a5', icon: 'users' },
+  sub_open_office: { label: 'Open office', color: '#4fd1a5', icon: 'users' },
   meeting_room: { label: 'Meeting room', color: '#b391ff', icon: 'presentation' },
   toilet: { label: 'Restroom', color: '#ffb454', icon: 'toilet' },
+  elevator: { label: 'Elevator', color: '#8fb4ff', icon: 'elevator' },
   other: { label: 'Room', color: '#9aa4b2', icon: 'box' },
   non_traversable: { label: 'Restricted', color: '#6b7280', icon: 'ban' },
   default: { label: 'Room', color: '#8b94a3', icon: 'door' },
 };
-export const CATEGORY_TINT = 0.02;
-// Room categories that are open floor: no solid is built, but they keep a label.
-export const OPEN_CATEGORIES = ['open_office'];
+// Fill color of the room box itself, by category (distinct from the label icon
+// tint above). Categories not listed here (elevator, other, non_traversable,
+// a closed office still named "Room N", ...) fall back to the plain gray box.
+export const ROOM_CATEGORY_COLOR = {
+  toilet: 0x744e5c, // dusty, faded rose — not neon pink
+  meeting_room: 0x57476b, // dusty, faded plum — not neon purple
+};
+// A named closed office is blended this far toward COLORS.accent (the same
+// blue used to look "selected"), and carries a permanent edge outline.
+export const CLOSED_OFFICE_TINT = 0.26;
+// Room categories that are open floor: no interactive solid is built, just a
+// static translucent box (see BuildingBuilder) and a label.
+export const OPEN_CATEGORIES = ['open_office', 'sub_open_office'];
+export const GLASS_OPACITY = 0.32; // "translucent" — open-office boxes, and a room mid-route
+// Extra inward padding for an open-office box, on top of the normal ROOM_GAP
+// every room gets — makes it read as visibly smaller than its real boundary,
+// floating inside it, rather than filling it edge-to-edge.
+export const OPEN_AREA_PADDING = 0.6; // meters
+// Whether an open-office box also gets a permanent blue edge outline, the
+// same outline a room gets while selected as part of a route.
+export const OPEN_AREA_SHOW_OUTLINE = true;
 
 // ---- stairs ---------------------------------------------------------
 export const STAIR_RISE = 0.2; // meters per step (a little tall, like the rest of the model)
 export const STAIR_TREAD = 0.34; // meters of run per step
-export const STAIR_LIGHT = 0xa9b0bc; // top-of-stairs color; vertex colors fade it to black with depth
+export const STAIR_LIGHT = 0xa9b0bc; // top-of-stairs color; vertex colors fade it to black with depth (descending stairs only)
 export const STAIR_DARK = 0x08090b;
 export const VOID_COLOR = 0x040405;
+export const DEFAULT_VOID_DEPTH = -3; // meters below the floor, used for an exclusion zone with no stairs of its own
 
 export const OBJECT_STYLE = {
   exits: { label: 'Exit', color: '#4ade80', icon: 'exit' },
-  elevator: { label: 'Elevator', color: '#60a5fa', icon: 'elevator' },
   stairs: { label: 'Stairs', color: '#fbbf24', icon: 'stairs' },
   'fire-extinguisher': { label: 'Fire extinguisher', color: '#f87171', icon: 'flame' },
   'fire-alarm': { label: 'Fire alarm', color: '#f87171', icon: 'bell' },
@@ -61,6 +82,7 @@ export const CAMERA_DEFAULT_PITCH = 50;
 export const CAMERA_MIN_DISTANCE = 7; // meters
 export const CAMERA_MAX_DISTANCE_FACTOR = 1.6; // x the "fit whole building" distance
 export const LABEL_ZOOM_DISTANCE_FACTOR = 0.93; // labels appear once closer than this x the fit distance
+export const INTRO_ZOOM_DISTANCE_FACTOR = 0.8; // where the intro flight settles — inside LABEL_ZOOM_DISTANCE_FACTOR so labels are already on by the time it ends
 
 // ---- route ----------------------------------------------------------
 export const ROUTE_WORLD_WIDTH = 1.5; // meters, line width at a comfortable zoom

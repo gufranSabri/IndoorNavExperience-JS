@@ -11,9 +11,14 @@ import {
   VOID_CORNER_RADIUS,
   COLORS,
   VOID_COLOR,
+  DEFAULT_VOID_DEPTH,
   CATEGORY_STYLE,
-  CATEGORY_TINT,
+  ROOM_CATEGORY_COLOR,
+  CLOSED_OFFICE_TINT,
   OPEN_CATEGORIES,
+  GLASS_OPACITY,
+  OPEN_AREA_PADDING,
+  OPEN_AREA_SHOW_OUTLINE,
   OBJECT_STYLE,
 } from './constants.js';
 import {
@@ -28,6 +33,7 @@ import {
 import { makeShape, extrude } from './shapes.js';
 import { mergeGeometries } from './geometryMerge.js';
 import { buildStairs } from './StairsBuilder.js';
+import { isGenericRoomLabel } from './FloorDataLoader.js';
 
 // ---- boundary walls --------------------------------------------------
 
@@ -130,13 +136,26 @@ function buildWallGeometry(boundary, doors) {
 
 // ---- rooms -----------------------------------------------------------
 
-function roomBaseColor(category) {
-  const tint = new THREE.Color((CATEGORY_STYLE[category] || CATEGORY_STYLE.default).color);
-  return new THREE.Color(COLORS.room).lerp(tint, CATEGORY_TINT);
+// Fill color + permanent outline for a room's box, by category:
+// toilets pink, meeting rooms purple, a named closed office the same blue a
+// click used to give it (now baked in, since clicking no longer changes the
+// look), everything else (a still-"Room N" closed office, elevator, other,
+// non_traversable...) the plain gray default box.
+function resolveRoomLook(category, name) {
+  if (category === 'toilet') return { color: new THREE.Color(ROOM_CATEGORY_COLOR.toilet), outline: false };
+  if (category === 'meeting_room') return { color: new THREE.Color(ROOM_CATEGORY_COLOR.meeting_room), outline: false };
+  if (category === 'closed_office' && !isGenericRoomLabel(name)) {
+    return {
+      color: new THREE.Color(COLORS.room).lerp(new THREE.Color(COLORS.accent), CLOSED_OFFICE_TINT),
+      outline: true,
+    };
+  }
+  return { color: new THREE.Color(COLORS.room), outline: false };
 }
 
-// Splits the editor's rooms into solid `rooms` and label-only `areas`
-// (open floor such as open offices, which stay unbuilt).
+// Splits the editor's rooms into interactive `rooms` (clickable, hoverable,
+// take part in route highlighting) and `areas` (label-only info, plus for an
+// open office a static translucent box that nothing ever picks or animates).
 function buildRooms(floorDoc, projector) {
   const rooms = [];
   const areas = [];
@@ -162,7 +181,38 @@ function buildRooms(floorDoc, projector) {
     };
 
     if (OPEN_CATEGORIES.includes(category)) {
-      areas.push({ ...common, height: 0, mesh: null });
+      // Shrunk further inward than a normal room's ROOM_GAP inset
+      // (OPEN_AREA_PADDING), so the box reads as visibly smaller than its
+      // real boundary instead of filling it edge-to-edge.
+      const openInset = offsetPolygon(world, -(ROOM_GAP / 2 + OPEN_AREA_PADDING));
+      if (openInset.length < 3 || Math.abs(signedArea(openInset)) < 0.5) {
+        areas.push({ ...common, height: 0, mesh: null });
+        continue;
+      }
+      const openFootprint = roundPolygon(openInset, ROOM_CORNER_RADIUS);
+      // Permanently translucent blue, same as a room mid-route — not part of
+      // `rooms`, so it never responds to hover/click/route highlighting.
+      const geometry = extrude(makeShape(openFootprint), ROOM_HEIGHT);
+      const material = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(COLORS.room).lerp(new THREE.Color(COLORS.accent), 0.5),
+        roughness: 0.6,
+        metalness: 0.04,
+        transparent: true,
+        opacity: GLASS_OPACITY,
+        depthWrite: false,
+      });
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.position.y = BASE_HEIGHT;
+      mesh.renderOrder = 20;
+      if (OPEN_AREA_SHOW_OUTLINE) {
+        const edges = new THREE.LineSegments(
+          new THREE.EdgesGeometry(geometry, 30),
+          new THREE.LineBasicMaterial({ color: COLORS.hover, transparent: true, opacity: 1, depthWrite: false })
+        );
+        edges.renderOrder = 30;
+        mesh.add(edges);
+      }
+      areas.push({ ...common, height: ROOM_HEIGHT, mesh });
       continue;
     }
 
@@ -176,13 +226,15 @@ function buildRooms(floorDoc, projector) {
     const height = restricted ? ROOM_HEIGHT * 0.35 : ROOM_HEIGHT;
     const geometry = extrude(makeShape(footprint), height);
 
-    const baseColor = roomBaseColor(category || 'default');
+    const look = resolveRoomLook(category, common.name);
+    const baseColor = look.color;
+    const emissiveFloor = look.outline ? 0.1 : 0;
     const material = new THREE.MeshStandardMaterial({
       color: baseColor.clone(),
       roughness: 0.78,
       metalness: 0.04,
-      emissive: new THREE.Color(COLORS.accent),
-      emissiveIntensity: 0,
+      emissive: new THREE.Color(COLORS.destination),
+      emissiveIntensity: emissiveFloor,
     });
     const mesh = new THREE.Mesh(geometry, material);
     mesh.position.y = BASE_HEIGHT;
@@ -191,9 +243,9 @@ function buildRooms(floorDoc, projector) {
 
     const edges = new THREE.LineSegments(
       new THREE.EdgesGeometry(geometry, 30),
-      new THREE.LineBasicMaterial({ color: COLORS.hover, transparent: true, opacity: 0, depthWrite: false })
+      new THREE.LineBasicMaterial({ color: COLORS.hover, transparent: true, opacity: look.outline ? 1 : 0, depthWrite: false })
     );
-    edges.visible = false;
+    edges.visible = look.outline;
     edges.renderOrder = 30;
     mesh.add(edges);
 
@@ -206,9 +258,14 @@ function buildRooms(floorDoc, projector) {
       material,
       baseColor,
       height,
-      // Animated visual state (see SatelliteView._updateRoomStates).
-      state: { hover: 0, glass: 0, accent: 0, select: 0 },
-      target: { hover: 0, glass: 0, accent: 0, select: 0 },
+      // A named closed office keeps its outline and glow permanently (see
+      // resolveRoomLook); everything else starts from zero.
+      outlineFloor: look.outline ? 1 : 0,
+      emissiveFloor,
+      // Animated visual state (see SatelliteView._updateRoomStates): hover on
+      // pointer-over, glass+accent while part of an active route.
+      state: { hover: 0, glass: 0, accent: 0 },
+      target: { hover: 0, glass: 0, accent: 0 },
     };
     mesh.userData.room = record;
     rooms.push(record);
@@ -233,28 +290,46 @@ export function buildBuilding(floorDoc, projector) {
     .filter((d) => externalIds.has(d.wall_id))
     .map((d) => ({ a: projector.toWorldArr(d.start), b: projector.toWorldArr(d.end) }));
 
-  // Openings in the floor (atria / stairwells). The base is cut open there and
-  // a dark shaft, with the stairs inside it, sits underneath.
-  const openings = (floorDoc.elements?.floor_scope?.exclusion_areas || [])
-    .map((area) => roundPolygon(cleanPolygon((area.polygon || []).map((p) => projector.toWorldArr(p))), VOID_CORNER_RADIUS))
-    .filter((outline) => outline.length >= 3);
+  const floorScope = floorDoc.elements?.floor_scope;
+  // A plain user toggle on the Floor Scope page: whether this floor has
+  // nothing below it. Everywhere else it governs how a floor's exclusion
+  // zones (atria/stairwells) are built — see buildStairs.
+  const isLowestFloor = !!floorScope?.is_lowest_floor;
 
-  const stairs = buildStairs(floorDoc.elements?.floor_scope, projector, { floorY: BASE_HEIGHT });
+  const stairs = buildStairs(floorScope, projector, { floorY: BASE_HEIGHT, isLowestFloor });
   root.add(stairs.group);
+
+  // Openings in the floor (atria / stairwells) only make sense where there is
+  // a real floor below to reveal — on the lowest floor the same zones instead
+  // just carry stairs climbing up out of solid ground (see buildStairs).
+  const exclusionAreas = floorScope?.exclusion_areas || [];
+  const openings = isLowestFloor
+    ? []
+    : exclusionAreas
+        .map((area) => ({
+          id: area.id,
+          outline: roundPolygon(cleanPolygon((area.polygon || []).map((p) => projector.toWorldArr(p))), VOID_CORNER_RADIUS),
+        }))
+        .filter((o) => o.outline.length >= 3);
 
   // Base plinth: the building's own outline, a little larger, rounded.
   const baseOutline = offsetPolygon(boundary, BASE_MARGIN, { join: 'round' });
   const baseMaterial = new THREE.MeshStandardMaterial({ color: COLORS.base, roughness: 0.9, metalness: 0.02 });
-  const base = new THREE.Mesh(extrude(makeShape(baseOutline, openings), BASE_HEIGHT, 0.09), baseMaterial);
+  const base = new THREE.Mesh(
+    extrude(makeShape(baseOutline, openings.map((o) => o.outline)), BASE_HEIGHT, 0.09),
+    baseMaterial
+  );
   base.name = 'base';
-  base.castShadow = true; // so the stairwell's rim shades the stairs
+  base.castShadow = true; // so a stairwell's rim shades the stairs below it
   base.receiveShadow = true;
   root.add(base);
 
-  // The stairwell itself: an open-topped black shaft, only its inside faces drawn.
+  // Each stairwell: an open-topped black shaft, only its inside faces drawn,
+  // sized to how deep that particular zone's own stairs actually go.
   const voidMaterial = new THREE.MeshStandardMaterial({ color: VOID_COLOR, roughness: 1, metalness: 0, side: THREE.BackSide });
-  const wellBottom = Math.min(stairs.bottomY - 0.5, -1.2);
-  for (const outline of openings) {
+  for (const { id, outline } of openings) {
+    const zoneBottom = stairs.zoneDepths.get(id) ?? BASE_HEIGHT + DEFAULT_VOID_DEPTH;
+    const wellBottom = Math.min(zoneBottom - 0.5, BASE_HEIGHT - 1.2);
     const shaft = new THREE.Mesh(extrude(makeShape(outline), -wellBottom, 0), voidMaterial);
     shaft.position.y = wellBottom;
     shaft.receiveShadow = true;
@@ -286,6 +361,13 @@ export function buildBuilding(floorDoc, projector) {
   const { rooms, areas } = buildRooms(floorDoc, projector);
   for (const room of rooms) roomGroup.add(room.mesh);
   root.add(roomGroup);
+
+  // Open-office areas: a static translucent box each, deliberately outside
+  // roomGroup so picking (SatelliteView._pick) never selects one.
+  const areaGroup = new THREE.Group();
+  areaGroup.name = 'open-areas';
+  for (const area of areas) if (area.mesh) areaGroup.add(area.mesh);
+  root.add(areaGroup);
 
   // Point objects (exits, elevators...) — data only; they are drawn as
   // labels, not geometry.

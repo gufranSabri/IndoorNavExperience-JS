@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#0b0c0f" />
   <title>Indoor Wayfinding — Satellite</title>
   <style>
@@ -20,6 +20,11 @@
       font-family: var(--sat-font);
       overscroll-behavior: none;
       overflow: hidden;
+      /* Phones double-tap-zoom or select text on stray taps otherwise —
+         this page is an app shell, not a document. */
+      touch-action: manipulation;
+      -webkit-user-select: none; user-select: none;
+      -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
     }
     #map { position: absolute; inset: 0; }
 
@@ -66,7 +71,7 @@
   <div id="map"></div>
 
   <div class="panel">
-    <div class="brand"><h1>Floor 5</h1><span>Indoor map</span></div>
+    <div class="brand"><h1>Floor 2</h1><span>Indoor map</span></div>
     <div id="selector"></div>
   </div>
 
@@ -102,7 +107,9 @@
     mapEl.addEventListener('wayfinding:route-cleared', () => view.refreshInsets());
     window.addEventListener('resize', () => view.refreshInsets());
 
-    view.loadFloor('./data/floor5/').then(() => view.setUserNode(ENTRANCE)).catch((err) => {
+    // Sample data copied from docs/building_data/floors/2/1 (building "Mujamma-proper",
+    // its floor2) — see docs/MAP_DATA_STORAGE.md for the on-disk layout this mirrors.
+    view.loadFloor('./data/floors/2/1/').then(() => view.setUserNode(ENTRANCE)).catch((err) => {
       console.error(err);
       mapEl.insertAdjacentHTML('beforeend', `<p style="position:absolute;color:#fff;padding:20px">Failed to load floor data: ${err.message}</p>`);
     });
