@@ -1,11 +1,6 @@
 {
   "exits": [
     {
-      "x": 693.2709,
-      "y": 323.8616,
-      "label": "Main Exit"
-    },
-    {
       "x": 290.6222,
       "y": 653.7121,
       "label": "Emergency Exit"
@@ -14,6 +9,23 @@
       "x": 1094.0601,
       "y": 667.571,
       "label": "Emergency Exit"
+    },
+    {
+      "x": 778.808,
+      "y": 437.366,
+      "label": "Main Exit 2"
+    },
+    {
+      "x": 607.6457,
+      "y": 434.6396,
+      "label": "Main Exit 1"
+    }
+  ],
+  "wayfinding-kiosk": [
+    {
+      "x": 693.9017,
+      "y": 499.0169,
+      "label": "Kiosk"
     }
   ]
 }

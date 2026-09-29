@@ -1,3 +1,4 @@
+import { dedupeNodesByLabel } from './core/FloorDataLoader.js';
 import { FLOOR_LOADED_EVENT, ROUTE_CHANGE_EVENT, ROUTE_ERROR_EVENT } from './WayfindingView.js';
 
 const STYLE = `
@@ -110,7 +111,7 @@ export class RouteSelector {
   }
 
   setNodes(nodes) {
-    this.nodes = nodes.filter((n) => n.reachable);
+    this.nodes = dedupeNodesByLabel(nodes.filter((n) => n.reachable));
     for (const field of [this.startField, this.destField]) {
       const previous = field.select.value;
       field.select.innerHTML = '';

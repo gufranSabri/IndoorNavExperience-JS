@@ -98,9 +98,9 @@
     };
     const view = new SatelliteView(mapEl, { eventTarget: mapEl, getInsets });
 
-    // "exits-0" is the main entrance — where the blue "you are here" dot starts,
+    // The wayfinding kiosk is where the blue "you are here" dot starts,
     // and the pre-selected start of any route.
-    const ENTRANCE = 'exits-0';
+    const ENTRANCE = 'wayfinding-kiosk-4';
     new RouteSelector(document.getElementById('selector'), { eventTarget: mapEl, defaultStartId: ENTRANCE });
     new RouteControls(document.getElementById('player'), { eventTarget: mapEl });
     // The card grows/shrinks when a route is set or cleared; keep the map framed around it.

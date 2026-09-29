@@ -1,5 +1,6 @@
 import { icon } from './ui/icons.js';
-import { isGenericRoomLabel } from './core/FloorDataLoader.js';
+import { isGenericRoomLabel, dedupeNodesByLabel, labelKey } from './core/FloorDataLoader.js';
+import { CATEGORY_STYLE, OBJECT_STYLE } from './core/constants.js';
 import {
   FLOOR_LOADED_EVENT,
   ROUTE_CHANGE_EVENT,
@@ -38,6 +39,76 @@ const STYLE = `
 .sat-field::after {
   content: ''; position: absolute; right: 15px; top: 50%; width: 7px; height: 7px; margin-top: -6px; pointer-events: none;
   border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg);
+}
+.sat-field-btn {
+  appearance: none; -webkit-appearance: none; width: 100%; height: 42px; padding: 0 36px 0 14px; border-radius: 11px;
+  border: 1px solid var(--border); background: rgba(255,255,255,.06); color: var(--text); text-align: left;
+  font: 500 14px/1 inherit; font-family: inherit; cursor: pointer; display: block;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  transition: background .15s ease, border-color .15s ease;
+}
+.sat-field-btn:hover:not(:disabled) { background: rgba(255,255,255,.09); }
+.sat-field-btn:focus-visible { outline: 2px solid #4285f4; outline-offset: 1px; }
+.sat-field-btn:disabled { color: var(--muted); cursor: default; }
+.sat-field-btn.is-placeholder { color: var(--muted); }
+
+/* ---- destination picker ---- */
+/* Self-contained custom properties: this sheet is appended straight to
+   <body> (see the constructor), outside .sat-route's subtree, so it can't
+   rely on inheriting --text/--muted/--border or the user-select/touch-action
+   reset from it — without these it rendered with default (black) text. */
+.sat-dest-picker, .sat-dest-picker * { box-sizing: border-box; }
+.sat-dest-picker {
+  --text: var(--sat-text, #eef1f5); --muted: var(--sat-muted, #98a2b3); --border: var(--sat-border, rgba(255,255,255,.09));
+  font-family: var(--sat-font, Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif);
+  color: var(--text);
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  position: fixed; inset: 0; z-index: 60; display: none; align-items: center; justify-content: center; padding: 24px;
+}
+.sat-dest-picker.is-open { display: flex; }
+.sat-dest-backdrop { position: absolute; inset: 0; background: rgba(6,7,9,.6); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
+.sat-dest-sheet {
+  position: relative; width: min(420px, 100%); max-height: min(600px, 100%); display: flex; flex-direction: column;
+  background: rgba(19,21,26,.97); border: 1px solid var(--border); border-radius: 22px; box-shadow: 0 24px 60px rgba(0,0,0,.55);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4); backdrop-filter: blur(20px) saturate(1.4); overflow: hidden;
+}
+.sat-dest-header { display: flex; align-items: center; gap: 4px; padding: 14px 10px 8px 16px; flex: none; }
+.sat-dest-header-btn {
+  appearance: none; border: 0; background: transparent; color: var(--text); width: 32px; height: 32px; border-radius: 50%;
+  display: grid; place-items: center; cursor: pointer; flex: none; transition: background .15s ease;
+}
+.sat-dest-header-btn:hover { background: rgba(255,255,255,.08); }
+.sat-dest-header-btn[hidden] { display: none; }
+/* Several picker children (.sat-field, .sat-dest-list...) set their own
+   display property, which otherwise beats the UA default [hidden] rule and
+   leaves a "hidden" element rendered anyway. */
+.sat-dest-picker [hidden] { display: none !important; }
+.sat-dest-title { flex: 1; font: 650 15px/1 inherit; letter-spacing: -.01em; }
+.sat-dest-body { padding: 4px 16px 18px; overflow-y: auto; flex: 1; }
+.sat-dest-select { margin-bottom: 18px; }
+.sat-dest-select select {
+  appearance: none; -webkit-appearance: none; width: 100%; height: 42px; padding: 0 36px 0 14px; border-radius: 11px;
+  border: 1px solid var(--border); background: rgba(255,255,255,.06); color: var(--text);
+  font: 500 14px/1 inherit; font-family: inherit; color-scheme: dark; cursor: pointer;
+}
+.sat-dest-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); gap: 16px 6px; }
+.sat-dest-cat { appearance: none; border: 0; background: transparent; color: var(--text); display: flex; flex-direction: column; align-items: center; gap: 7px; cursor: pointer; padding: 2px 0; }
+.sat-dest-cat-circle { width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; background: var(--c); color: #0d0f13; transition: transform .15s ease; }
+.sat-dest-cat:hover .sat-dest-cat-circle { transform: scale(1.06); }
+.sat-dest-cat:active .sat-dest-cat-circle { transform: scale(.94); }
+.sat-dest-cat-label { font-size: 11.5px; font-weight: 600; text-align: center; color: var(--muted); max-width: 76px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sat-dest-list { display: flex; flex-direction: column; gap: 2px; }
+.sat-dest-list-item {
+  appearance: none; border: 0; background: transparent; color: var(--text); width: 100%; display: flex; align-items: center;
+  gap: 12px; padding: 10px 8px; border-radius: 11px; cursor: pointer; font: 500 14px/1 inherit; text-align: left;
+}
+.sat-dest-list-item:hover { background: rgba(255,255,255,.07); }
+.sat-dest-list-icon { flex: none; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--c); color: #0d0f13; }
+.sat-dest-list-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 560px) {
+  .sat-dest-picker { padding: 12px; align-items: flex-end; }
+  .sat-dest-sheet { width: 100%; max-height: 78vh; border-radius: 20px 20px 0 0; }
 }
 .sat-route-swap {
   appearance: none; align-self: center; flex: none; width: 36px; height: 36px; border-radius: 50%; padding: 0; cursor: pointer;
@@ -78,6 +149,12 @@ function groupLabel(node) {
   return node.class.charAt(0).toUpperCase() + node.class.slice(1);
 }
 
+// The category grid's catch-all bucket for every searchable node that isn't
+// a room (exits, stairs, fire equipment...) — each still keeps its own
+// OBJECT_STYLE icon/color once you're inside the list, this is just the
+// round button that gets you there.
+const OTHER_STYLE = { label: 'Other', color: '#9aa4b2', icon: 'box' };
+
 export function formatDuration(seconds) {
   const minutes = Math.max(1, Math.round(seconds / 60));
   return `${minutes} min`;
@@ -111,8 +188,12 @@ export class RouteSelector {
       <div class="sat-route-fields">
         <div class="sat-route-rail"><span class="sat-route-from"></span><span class="sat-route-line"></span><span class="sat-route-to">${icon('pin', { size: 18, stroke: 2.2 })}</span></div>
         <div class="sat-route-selects">
-          <label class="sat-field"><select data-role="start" aria-label="Start" disabled></select></label>
-          <label class="sat-field"><select data-role="dest" aria-label="Destination" disabled></select></label>
+          <button type="button" class="sat-field sat-field-btn is-placeholder" data-role="start-trigger" aria-label="Start" disabled>
+            <span data-role="start-trigger-text">Choose starting point</span>
+          </button>
+          <button type="button" class="sat-field sat-field-btn is-placeholder" data-role="dest-trigger" aria-label="Destination" disabled>
+            <span data-role="dest-trigger-text">Choose destination</span>
+          </button>
         </div>
         <button type="button" class="sat-route-swap" title="Swap start and destination" aria-label="Swap start and destination">${icon('swap', { size: 17, stroke: 2.2 })}</button>
       </div>
@@ -123,11 +204,53 @@ export class RouteSelector {
       <div class="sat-route-error"></div>`;
     container.appendChild(this.root);
 
-    this.startSelect = this.root.querySelector('[data-role="start"]');
-    this.destSelect = this.root.querySelector('[data-role="dest"]');
+    // One shared picker, reused for both fields (see _openPicker(field)).
+    // It's appended straight to <body>, not nested under `this.root`: a
+    // backdrop-filter anywhere up the tree (the example page's own .panel
+    // has one) turns position:fixed descendants into something confined to
+    // that ancestor's box instead of the viewport, so it has to live outside it.
+    this.picker = document.createElement('div');
+    this.picker.className = 'sat-dest-picker';
+    this.picker.innerHTML = `
+      <div class="sat-dest-backdrop" data-role="backdrop"></div>
+      <div class="sat-dest-sheet" role="dialog" aria-label="Choose a place">
+        <div class="sat-dest-header">
+          <button type="button" class="sat-dest-header-btn" data-role="back" aria-label="Back" hidden>${icon('back', { size: 18, stroke: 2.3 })}</button>
+          <div class="sat-dest-title" data-role="picker-title">Choose destination</div>
+          <button type="button" class="sat-dest-header-btn" data-role="close" aria-label="Close">${icon('close', { size: 16, stroke: 2.3 })}</button>
+        </div>
+        <div class="sat-dest-body">
+          <div data-role="grid-wrap">
+            <label class="sat-field sat-dest-select" data-role="start-select-wrap"><select data-role="start" aria-label="Start"></select></label>
+            <label class="sat-field sat-dest-select" data-role="dest-select-wrap"><select data-role="dest" aria-label="Destination"></select></label>
+            <div class="sat-dest-grid" data-role="grid"></div>
+          </div>
+          <div class="sat-dest-list" data-role="list" hidden></div>
+        </div>
+      </div>`;
+    document.body.appendChild(this.picker);
+
+    this.startSelect = this.picker.querySelector('[data-role="start"]');
+    this.destSelect = this.picker.querySelector('[data-role="dest"]');
+    this.startTrigger = this.root.querySelector('[data-role="start-trigger"]');
+    this.startTriggerText = this.root.querySelector('[data-role="start-trigger-text"]');
+    this.destTrigger = this.root.querySelector('[data-role="dest-trigger"]');
+    this.destTriggerText = this.root.querySelector('[data-role="dest-trigger-text"]');
     this.errorEl = this.root.querySelector('.sat-route-error');
     this.timeEl = this.root.querySelector('[data-role="time"]');
     this.distanceEl = this.root.querySelector('[data-role="distance"]');
+
+    this.pickerTitle = this.picker.querySelector('[data-role="picker-title"]');
+    this.pickerBack = this.picker.querySelector('[data-role="back"]');
+    this.pickerGridWrap = this.picker.querySelector('[data-role="grid-wrap"]');
+    this.startSelectWrap = this.picker.querySelector('[data-role="start-select-wrap"]');
+    this.destSelectWrap = this.picker.querySelector('[data-role="dest-select-wrap"]');
+    this.pickerGrid = this.picker.querySelector('[data-role="grid"]');
+    this.pickerList = this.picker.querySelector('[data-role="list"]');
+    // The picker floats outside `this.root`, so it needs its own guard
+    // against leaking gestures to the map underneath.
+    this.picker.addEventListener('pointerdown', (e) => e.stopPropagation());
+    this.picker.addEventListener('wheel', (e) => e.stopPropagation());
 
     this._handlers = {
       [FLOOR_LOADED_EVENT]: (e) => this.setNodes(e.detail?.nodes || []),
@@ -141,17 +264,28 @@ export class RouteSelector {
     };
     for (const [type, fn] of Object.entries(this._handlers)) this.eventTarget.addEventListener(type, fn);
 
-    this._onChange = () => this._emitChange();
-    this.startSelect.addEventListener('change', this._onChange);
-    this.destSelect.addEventListener('change', this._onChange);
+    this.startSelect.addEventListener('change', () => this._finishStartPick());
+    this.destSelect.addEventListener('change', () => this._finishDestinationPick());
+    this.startTrigger.addEventListener('click', () => this._openPicker('start'));
+    this.destTrigger.addEventListener('click', () => this._openPicker('dest'));
+    this.picker.querySelector('[data-role="close"]').addEventListener('click', () => this._closePicker());
+    this.picker.querySelector('[data-role="backdrop"]').addEventListener('click', () => this._closePicker());
+    this.pickerBack.addEventListener('click', () => this._showCategoryGrid());
+    this._onKeydown = (e) => {
+      if (e.key === 'Escape' && this.picker.classList.contains('is-open')) this._closePicker();
+    };
+    document.addEventListener('keydown', this._onKeydown);
     this.root.querySelector('.sat-route-swap').addEventListener('click', () => {
       const a = this.startSelect.value;
       this.startSelect.value = this.destSelect.value;
       this.destSelect.value = a;
+      this._updateStartTrigger();
+      this._updateDestTrigger();
       this._emitChange();
     });
     this.root.querySelector('.sat-route-clear').addEventListener('click', () => {
       this.destSelect.value = '';
+      this._updateDestTrigger();
       this.errorEl.textContent = '';
       this.eventTarget.dispatchEvent(new CustomEvent(ROUTE_CLEAR_EVENT, { bubbles: true }));
     });
@@ -192,21 +326,137 @@ export class RouteSelector {
     // A room the editor never gave a real name to ("Room 7") isn't worth
     // offering as a destination — only its category-less placeholder name,
     // never something an actual visitor would search for.
-    this.nodes = nodes.filter((n) => n.reachable && !(n.class === 'room' && isGenericRoomLabel(n.label)));
+    this.nodes = dedupeNodesByLabel(
+      nodes.filter((n) => n.reachable && !(n.class === 'room' && isGenericRoomLabel(n.label)))
+    );
+    this._allNodes = nodes;
     this._fill(this.startSelect, 'Choose starting point');
     this._fill(this.destSelect, 'Choose destination');
+    this.startTrigger.disabled = this.startSelect.disabled;
+    this.destTrigger.disabled = this.destSelect.disabled;
     if (!this.startSelect.value && this.defaultStartId && this.nodes.some((n) => n.id === this.defaultStartId)) {
       this.startSelect.value = this.defaultStartId;
     }
+    this._updateStartTrigger();
+    this._updateDestTrigger();
   }
 
   // Clicking a box on the map (SatelliteView.selectRoom) picks it as the
   // destination here, same as choosing it from the dropdown. A room excluded
   // from the destination list (still named "Room N") is silently ignored.
   _onRoomSelect(detail) {
-    if (!detail?.nodeId || !this.nodes.some((n) => n.id === detail.nodeId)) return;
-    this.destSelect.value = detail.nodeId;
+    if (!detail?.nodeId) return;
+    // A clicked duplicate maps to the single listed entry sharing its name.
+    const clicked = (this._allNodes || this.nodes).find((n) => n.id === detail.nodeId);
+    const listed = clicked && this.nodes.find((n) => labelKey(n.label) === labelKey(clicked.label));
+    if (!listed) return;
+    this.destSelect.value = listed.id;
+    this._finishDestinationPick();
+  }
+
+  // ---- start / destination picker ---------------------------------------
+  // One shared modal (see the constructor) serves both fields; `_activeField`
+  // ('start' | 'dest') tracks which one is currently open.
+
+  _updateStartTrigger() {
+    const node = this.nodes.find((n) => n.id === this.startSelect.value);
+    this.startTriggerText.textContent = node ? node.label : 'Choose starting point';
+    this.startTrigger.classList.toggle('is-placeholder', !node);
+  }
+
+  _updateDestTrigger() {
+    const node = this.nodes.find((n) => n.id === this.destSelect.value);
+    this.destTriggerText.textContent = node ? node.label : 'Choose destination';
+    this.destTrigger.classList.toggle('is-placeholder', !node);
+  }
+
+  _finishStartPick() {
+    this._updateStartTrigger();
+    this._closePicker();
     this._emitChange();
+  }
+
+  _finishDestinationPick() {
+    this._updateDestTrigger();
+    this._closePicker();
+    this._emitChange();
+  }
+
+  _openPicker(field) {
+    const trigger = field === 'start' ? this.startTrigger : this.destTrigger;
+    if (trigger.disabled) return;
+    this._activeField = field;
+    this.startSelectWrap.hidden = field !== 'start';
+    this.destSelectWrap.hidden = field !== 'dest';
+    this._buildCategoryGrid();
+    this._showCategoryGrid();
+    this.picker.classList.add('is-open');
+  }
+
+  _closePicker() {
+    this.picker.classList.remove('is-open');
+  }
+
+  _showCategoryGrid() {
+    this.pickerTitle.textContent = this._activeField === 'start' ? 'Choose starting point' : 'Choose destination';
+    this.pickerBack.hidden = true;
+    this.pickerGridWrap.hidden = false;
+    this.pickerList.hidden = true;
+  }
+
+  // One round icon button per room category actually present on this floor
+  // (open_office / sub_open_office share a bucket since they share a label),
+  // plus a catch-all "Other" bucket for every non-room searchable node
+  // (exits, stairs, fire equipment...), always last.
+  _buildCategoryGrid() {
+    const buckets = new Map();
+    const other = [];
+    for (const node of this.nodes) {
+      if (node.class === 'room') {
+        const style = CATEGORY_STYLE[node.category] || CATEGORY_STYLE.default;
+        if (!buckets.has(style.label)) buckets.set(style.label, { style, items: [] });
+        buckets.get(style.label).items.push({ node, style });
+      } else {
+        other.push({ node, style: OBJECT_STYLE[node.class] || OBJECT_STYLE.default });
+      }
+    }
+    if (other.length) buckets.set(OTHER_STYLE.label, { style: OTHER_STYLE, items: other });
+
+    this.pickerGrid.innerHTML = '';
+    for (const [label, { style, items }] of buckets) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'sat-dest-cat';
+      btn.innerHTML = `<span class="sat-dest-cat-circle" style="--c:${style.color}">${icon(style.icon, { size: 22, stroke: 2 })}</span><span class="sat-dest-cat-label">${label}</span>`;
+      btn.addEventListener('click', () => this._showCategoryList(label, items));
+      this.pickerGrid.appendChild(btn);
+    }
+  }
+
+  // `items` is [{ node, style }, ...] — each keeps its own icon/color, since
+  // the "Other" bucket mixes several different node classes together.
+  _showCategoryList(label, items) {
+    this.pickerTitle.textContent = label;
+    this.pickerBack.hidden = false;
+    this.pickerGridWrap.hidden = true;
+    this.pickerList.hidden = false;
+    this.pickerList.innerHTML = '';
+    for (const { node, style } of items) {
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'sat-dest-list-item';
+      item.innerHTML = `<span class="sat-dest-list-icon" style="--c:${style.color}">${icon(style.icon, { size: 16, stroke: 2.2 })}</span><span class="sat-dest-list-label">${node.label}</span>`;
+      item.addEventListener('click', () => {
+        if (this._activeField === 'start') {
+          this.startSelect.value = node.id;
+          this._finishStartPick();
+        } else {
+          this.destSelect.value = node.id;
+          this._finishDestinationPick();
+        }
+      });
+      this.pickerList.appendChild(item);
+    }
   }
 
   _emitChange() {
@@ -231,6 +481,8 @@ export class RouteSelector {
 
   dispose() {
     for (const [type, fn] of Object.entries(this._handlers)) this.eventTarget.removeEventListener(type, fn);
+    document.removeEventListener('keydown', this._onKeydown);
     this.root.remove();
+    this.picker.remove();
   }
 }

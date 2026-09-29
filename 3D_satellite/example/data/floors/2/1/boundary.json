@@ -8169,30 +8169,6 @@
         "type": "normal"
       },
       {
-        "wall_id": "b80ccbd8-8191-435b-a077-c2d15713decc",
-        "start": [
-          453.8293,
-          633.8404
-        ],
-        "end": [
-          462.8977,
-          643.3836
-        ],
-        "type": "normal"
-      },
-      {
-        "wall_id": "6b1f0ff1-d75f-46aa-80b1-8430612320c7",
-        "start": [
-          469.2262,
-          650.0437
-        ],
-        "end": [
-          478.8511,
-          660.1726
-        ],
-        "type": "normal"
-      },
-      {
         "wall_id": "79df3c8b-e5cf-41a4-b3da-ea2a4f4e9bd2",
         "start": [
           365.8347,
@@ -8277,18 +8253,6 @@
         "type": "normal"
       },
       {
-        "wall_id": "19aa8b33-75c8-4fc5-a5e6-d53ad3a5690b",
-        "start": [
-          851.4285,
-          420.7237
-        ],
-        "end": [
-          864.8007,
-          408.2149
-        ],
-        "type": "elevator"
-      },
-      {
         "wall_id": "7e2e5317-11c5-47f7-952f-ef8c04773eb8",
         "start": [
           998.073,
@@ -8335,6 +8299,54 @@
           506.95
         ],
         "type": "normal"
+      },
+      {
+        "wall_id": "e87eaba6-a51e-45d4-a251-5200f1b69635",
+        "start": [
+          763.5789,
+          511.8425
+        ],
+        "end": [
+          779.0381,
+          497.3571
+        ],
+        "type": "normal"
+      },
+      {
+        "wall_id": "ec4b7f24-4f6a-4ff3-bcc1-50f74f7c3b44",
+        "start": [
+          505.0197,
+          492.7868
+        ],
+        "end": [
+          515.6336,
+          482.4474
+        ],
+        "type": "normal"
+      },
+      {
+        "wall_id": "f85a8088-3ecd-48b8-a4e5-852fad4c87c5",
+        "start": [
+          606.8908,
+          496.4255
+        ],
+        "end": [
+          623.6276,
+          513.8478
+        ],
+        "type": "normal"
+      },
+      {
+        "wall_id": "19aa8b33-75c8-4fc5-a5e6-d53ad3a5690b",
+        "start": [
+          854.3316,
+          418.008
+        ],
+        "end": [
+          867.3117,
+          405.8661
+        ],
+        "type": "elevator"
       }
     ],
     "rooms": [
@@ -9456,7 +9468,7 @@
       },
       {
         "id": "2326a63f-b755-4073-bd0e-3747862f1f94",
-        "name": "Business Cener",
+        "name": "Room IDK",
         "area": 12700.23,
         "status": "active",
         "wall_ids": [
@@ -9773,7 +9785,7 @@
       },
       {
         "id": "847bc21e-ae01-4604-be85-f75d4dba1f0c",
-        "name": "M280-C",
+        "name": "M280-Q",
         "area": 8371.44,
         "status": "active",
         "wall_ids": [
@@ -9805,7 +9817,7 @@
             655.2143
           ]
         ],
-        "category": "open_office"
+        "category": "meeting_room"
       },
       {
         "id": "3efaeaec-c70c-45b9-bd72-0de2df8a9c80",

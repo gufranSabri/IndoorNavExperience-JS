@@ -3,7 +3,7 @@ import { createProjector } from './core/coords.js';
 import { buildBuilding } from './core/BuildingBuilder.js';
 import { MapControls, fitDistanceForPoints } from './core/MapControls.js';
 import { RouteRenderer } from './core/RouteRenderer.js';
-import { loadFloorData, buildRouteNodes, buildPathIndex, findRoute, isGenericRoomLabel } from './core/FloorDataLoader.js';
+import { loadFloorData, buildRouteNodes, buildPathIndex, findRoute, isGenericRoomLabel, resolveNearestByLabel } from './core/FloorDataLoader.js';
 import { pointInPolygon } from './core/polygon.js';
 import { LabelLayer } from './ui/LabelLayer.js';
 import { UserMarker, DestinationPin } from './ui/Markers.js';
@@ -71,6 +71,8 @@ export class SatelliteView {
     // Returns the pixels of the map covered by floating UI ({top,right,bottom,left}); the
     // camera then frames things in the remaining free area.
     this.getInsets = options.getInsets || null;
+    // options.orientToExit (default true): open the map facing away from the nearest exit.
+    this.orientToExit = options.orientToExit !== false;
     this.freeExtent = { x: 1, y: 1 };
     ensureSatelliteStyle();
     container.classList.add('sat-root');
@@ -114,7 +116,8 @@ export class SatelliteView {
             onZoomOut: () => this.controls.zoomBy(1 / 0.62),
             onResetNorth: () => this.controls.resetNorth(),
             onToggleTilt: () => this.controls.toggleTilt(CAMERA_DEFAULT_PITCH * DEG),
-            onFit: () => this.recenter(),
+            onCardinal: () => this.rotateCardinal(),
+            onFit: () => this.centerOnUser(),
           });
 
     this.routeRenderer = new RouteRenderer(this.scene, { y: BASE_HEIGHT + LIFT });
@@ -298,7 +301,7 @@ export class SatelliteView {
     const c = this.fitCenter;
     this.controls.set({ x: c.x, z: c.z, distance: this.fitDistance * 1.55, pitch: 0, bearing: -18 * DEG });
     this.controls.flyTo(
-      { x: c.x, z: c.z, distance: this.fitDistance * INTRO_ZOOM_DISTANCE_FACTOR, pitch: CAMERA_DEFAULT_PITCH * DEG, bearing: 0 },
+      { x: c.x, z: c.z, distance: this.fitDistance * INTRO_ZOOM_DISTANCE_FACTOR, pitch: CAMERA_DEFAULT_PITCH * DEG, bearing: this._startBearing || 0 },
       2.4
     );
   }
@@ -332,11 +335,30 @@ export class SatelliteView {
     }
   }
 
+  // The floating button under the 2D/3D toggle: drop into 2D (top-down) and
+  // pan to the "you are here" dot. Falls back to the building's center if no
+  // user location has been set yet.
+  centerOnUser() {
+    if (!this.building) return;
+    const p = this.userLocation || this.fitCenter;
+    this.controls.flyTo({ x: p.x, z: p.z, pitch: 0 }, 1.2);
+  }
+
+  // The floating button under zoom +/-: forces 2D (top-down) and steps the
+  // bearing to the next cardinal direction, cycling N -> E -> S -> W -> N...
+  rotateCardinal() {
+    if (!this.building) return;
+    const deg = (((this.controls.bearing * 180) / Math.PI) % 360 + 360) % 360;
+    const next = (Math.round(deg / 90) + 1) % 4;
+    this.controls.flyTo({ pitch: 0, bearing: next * 90 * DEG }, 0.8);
+  }
+
   // ---- route ----------------------------------------------------------
 
   /** Programmatic equivalent of dispatching 'wayfinding:route-change'. */
   setRoute(startId, destinationId) {
     if (!this.pathIndex) return;
+    destinationId = resolveNearestByLabel(this.nodes, this.pathIndex, startId, destinationId);
     const result = findRoute(this.pathIndex, startId, destinationId);
     if (!result) {
       this._emit(ROUTE_ERROR_EVENT, { startId, destinationId, reason: 'no-path' });
@@ -475,8 +497,37 @@ export class SatelliteView {
   /** Puts the dot on a route-graph node, e.g. `view.setUserNode('exits-0')`. */
   setUserNode(nodeId) {
     const p = this._nodeWorld(nodeId);
-    if (p) this.setUserLocation(p);
+    if (p) {
+      this.setUserLocation(p);
+      this._orientToStart(p);
+    }
     return !!p;
+  }
+
+  // Turns the map to the N/E/S/W direction closest to pointing away from the
+  // nearest exit (straight-line), i.e. the exit ends up behind the user.
+  _orientToStart(start) {
+    if (!this.orientToExit) return;
+    let nearest = null;
+    let best = Infinity;
+    for (const node of this.nodes) {
+      if (node.class !== 'exits') continue;
+      const e = this._nodeWorld(node.id);
+      if (!e) continue;
+      const d = Math.hypot(start.x - e.x, start.z - e.z);
+      if (d < best) {
+        best = d;
+        nearest = e;
+      }
+    }
+    if (!nearest) return;
+    const dx = start.x - nearest.x;
+    const dz = start.z - nearest.z;
+    const h = Math.abs(dx) > Math.abs(dz) ? { x: Math.sign(dx), z: 0 } : { x: 0, z: Math.sign(dz) };
+    this._startBearing = Math.atan2(-h.x, -h.z);
+    if (!this._pendingIntro && !(this.route && this.routeRenderer.hasRoute)) {
+      this.controls.flyTo({ bearing: this._startBearing }, 1.2);
+    }
   }
 
   // Height of the walking surface at a point (the floor, or a stair tread), plus a small lift.
@@ -515,8 +566,15 @@ export class SatelliteView {
   seekDistance(distance) {
     if (!this.routeRenderer.hasRoute) return;
     this.playback.distance = Math.min(this.routeRenderer.length, Math.max(0, distance));
-    this._placeUser(this.playback.distance);
+    const p = this._placeUser(this.playback.distance);
+    // Scrubbing keeps the dot centred and facing the top of the screen too.
+    if (p) this.controls.follow(p, this._headingAt(this.playback.distance), 5);
     this._emitProgress();
+  }
+
+  // Route direction a little ahead of `distance`, so the map turns smoothly into corners.
+  _headingAt(distance) {
+    return this.routeRenderer.tangentAt(Math.min(this.routeRenderer.length, distance + 2.5));
   }
 
   _stepPlayback(dt) {
@@ -524,7 +582,7 @@ export class SatelliteView {
     const limit = Math.min(this.routeRenderer.length, this.routeRenderer.reveal);
     this.playback.distance = Math.min(limit, this.playback.distance + PLAYBACK_MPS * dt);
     const p = this._placeUser(this.playback.distance);
-    this.controls.follow(p);
+    this.controls.follow(p, this._headingAt(this.playback.distance));
     this._emitProgress();
     if (this.playback.distance >= this.routeRenderer.length - 0.001) {
       this.playback.playing = false;

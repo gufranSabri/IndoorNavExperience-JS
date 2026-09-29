@@ -185,8 +185,13 @@ export class MapControls {
 
   // Gently steers the view toward a moving point (used while previewing a
   // route). Any user gesture cancels it.
-  follow(point) {
+  // Pass `heading` (a world-space {x, z} direction) to also turn the map so
+  // that direction points to the top of the screen.
+  // `speed` is how snappily the view catches up (scrubbing wants it high).
+  follow(point, heading = null, speed = 1) {
+    this._followSpeed = speed;
     this._followTarget = point ? { x: point.x, z: point.z } : null;
+    this._followBearing = point && heading ? Math.atan2(-heading.x, -heading.z) : null;
   }
 
   // Ground-plane (y = 0) point under a normalized-device-coordinate position.
@@ -242,9 +247,13 @@ export class MapControls {
       }
 
       if (this._followTarget && !this.interacting) {
-        const k = 1 - Math.exp(-dt * 2.4);
+        const k = 1 - Math.exp(-dt * 2.4 * (this._followSpeed || 1));
         this.target.x += (this._followTarget.x - this.target.x) * k;
         this.target.z += (this._followTarget.z - this.target.z) * k;
+        if (this._followBearing !== null && this._followBearing !== undefined) {
+          const kb = 1 - Math.exp(-dt * 3 * (this._followSpeed || 1));
+          this.bearing += shortestAngle(this.bearing, this._followBearing) * kb;
+        }
         dirty = true;
       }
     }

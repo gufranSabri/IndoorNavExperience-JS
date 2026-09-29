@@ -1,115 +1,171 @@
-# Indoor Wayfinding — First-Person Viewer
+# Indoor Wayfinding — Viewers
 
-A pure-JS, first-person indoor wayfinding library built on Three.js. It renders a
-floor from the Wayfinding Editor's exported JSON (see
-[docs/MAP_DATA_STORAGE.md](docs/MAP_DATA_STORAGE.md)), draws an animated route
-between two selected points, and lets the user walk forward/backward **only
-along that route line**.
+Two pure-JS, Three.js-based viewers for the same indoor floor data, exported
+by the Wayfinding Editor (see [docs/MAP_DATA_STORAGE.md](docs/MAP_DATA_STORAGE.md)).
+Each folder is a self-contained deliverable: plain native ES modules, **no
+bundler, no npm, no build step, no CDN**, with Three.js vendored inside
+`src/vendor/`. Copy a folder's `src/` into a `wwwroot` and it works as-is.
 
-**`src/` is the entire deliverable.** It is plain, native ES modules — no
-bundler, no npm, no build step, no CDN, no internet access at runtime.
-Three.js itself is vendored as a single file at
-[src/vendor/three.module.js](src/vendor/three.module.js) and imported by
-relative path, so `src/` has zero external dependencies of any kind. Copy the
-whole folder into a `wwwroot` and it works as-is.
+| | [`3D_fps/`](3D_fps/) | [`3D_satellite/`](3D_satellite/) |
+|---|---|---|
+| **What it is** | First-person walk-through | Map-style "satellite" view |
+| **Camera** | Locked to the route; you walk it forward / backward | Free, OpenStreetMap-style: pan, zoom, rotate, tilt |
+| **Look** | Textured interior: walls with doors, ceilings, lights, sliding glass doors | Minimalist dark model: thick light boundary wall, slate room blocks, stairs up or down depending on the floor, no textures |
+| **Route** | Glowing tube; you can only move along it | Thick blue Google-Maps-style line with animation, plus a blue "you are here" dot |
+| **Other UI** | Forward / backward hold buttons and a progress bar | Room labels with category icons (shown on zoom), compass, zoom, 2D/3D, recenter, route preview player |
+| **Components** | `WayfindingView`, `WayfindingControls`, `RouteSelector` | `SatelliteView`, `RouteSelector`, `RouteControls` |
+| **Best for** | "Show me what the walk looks like" | Orientation, overview, browsing places, previewing a route |
+| **Detailed docs** | [3D_fps/README.md](3D_fps/README.md) | [3D_satellite/README.md](3D_satellite/README.md) |
 
-## Try it locally
+They don't depend on each other. They read the same four files per floor and
+speak the same style of DOM `CustomEvent`s, so a host can use either one, or
+both side by side.
 
-Any static file server works — `fetch()` just needs `http://`, not
-`file://`. No npm install is required for this either:
+## Repository layout
+
+```
+.
+├── 3D_fps/                 first-person viewer
+│   ├── src/                the deliverable (ES modules + vendored three.js)
+│   └── example/            demo page + a floor-5 sample data snapshot
+├── 3D_satellite/           map-style viewer
+│   ├── src/                the deliverable (ES modules + vendored three.js)
+│   └── example/            demo page + a floors/{buildingId}/{floorId}/ sample data snapshot
+└── docs/                   data contract and the Editor's sample data
+    ├── MAP_DATA_STORAGE.md   on-disk JSON contract both viewers consume
+    ├── building_data/        sample buildings / floors exported by the Editor
+    └── building-app/         separate React app (not used by the viewers)
+```
+
+## Running the examples
+
+Any static file server works — `fetch()` needs `http://`, not `file://`. Serve
+the folder you want to try:
 
 ```bash
-python3 -m http.server 8080
+# first-person viewer
+cd 3D_fps && python3 -m http.server 8080
+# → http://localhost:8080/example/index.html
+
+# satellite viewer
+cd 3D_satellite && python3 -m http.server 8081
+# → http://localhost:8081/example/index.html
 ```
 
-Then open `http://localhost:8080/example/index.html`.
+### Trying it on a phone
 
-## Architecture
+Bind the server to all interfaces and open your Mac's LAN address from a phone
+on the same Wi-Fi:
 
-Three decoupled components, wired together only through DOM `CustomEvent`s
-so any of them can be swapped out (or replaced by a .NET/Blazor host) without
-touching the others:
-
-1. **`WayfindingView`** (`src/WayfindingView.js`) — owns the Three.js scene,
-   camera and render loop. Renders the full 3D floor (walls with door gaps,
-   rooms colored by category, stairs/exclusion zones, point objects), then
-   an animated glowing path once a route is set, then a first-person camera
-   locked to that path.
-2. **`WayfindingControls`** (`src/WayfindingControls.js`) — forward/backward
-   buttons and a progress bar. Only dispatches `wayfinding:move`.
-3. **`RouteSelector`** (`src/RouteSelector.js`) — start/destination dropdowns.
-   Only dispatches `wayfinding:route-change`, and listens for
-   `wayfinding:floor-loaded` to populate its options.
-
-```
-src/
-├── index.js              entry point — re-exports the three classes below
-├── WayfindingView.js      component 1: the 3D view
-├── WayfindingControls.js  component 2: forward/backward controls
-├── RouteSelector.js       component 3: start/destination selector
-├── core/                  geometry building, coordinate projection, path
-│                          animation, walk/camera logic, data loading
-└── vendor/
-    └── three.module.js    vendored Three.js r160 (unmodified upstream build)
+```bash
+cd 3D_satellite
+python3 -m http.server 8080 --bind 0.0.0.0
+ipconfig getifaddr en0        # or en1 — prints the address, e.g. 192.168.1.20
+# → http://<that address>:8080/example/index.html
 ```
 
-### Event contract
+Corporate and campus networks often block device-to-device traffic; if the page
+doesn't load, use a personal hotspot or a tunnel (`npx localtunnel --port 8080`).
+Both example pages have a mobile layout — the satellite demo's selector becomes a
+full-width top bar on phones.
 
-All events are standard `CustomEvent`s on a shared target element (the
-view's container, by default), so a .NET host can drive the view with
-`IJSRuntime.InvokeVoidAsync` calling nothing more than
-`element.dispatchEvent(new CustomEvent(...))` — no reference to any JS class
-required:
+## Data both viewers use
 
-| Event | Direction | Detail |
-|---|---|---|
-| `wayfinding:move` | in | `{ direction: 'forward' \| 'backward', distance?: number }` |
-| `wayfinding:route-change` | in | `{ startId: string, destinationId: string }` |
-| `wayfinding:floor-loaded` | out | `{ nodes: Array<{id, label, class}> }` |
-| `wayfinding:route-set` | out | `{ startId, destinationId, distanceMeters }` |
-| `wayfinding:route-error` | out | `{ startId, destinationId, reason: 'no-path' }` |
-| `wayfinding:progress` | out | `{ progress, distance, atStart, atEnd }` |
+One floor is a folder of four JSON files, exactly as the Editor exports them:
 
-`startId`/`destinationId` are the positional node ids from the floor's
-`graph.json` (e.g. `"exits-0"`, `"room-<guid>"`); `WayfindingView.getNodes()`
-or the `wayfinding:floor-loaded` event gives you the full list with friendly
-labels. Routing itself is a direct lookup into the editor's precomputed
-`paths.json` (a dense pairwise table) — this library does not run its own
-pathfinding.
+| File | Contents |
+|---|---|
+| `boundary.json` | image size, scale (meters per pixel), outer boundary polygon, walls, doors (each with a `type`, `"normal"` or `"elevator"`), rooms (category includes `elevator`), floor scope (exclusion zones scoped stair/landing segments, and `is_lowest_floor`) |
+| `objects.json` | point objects — exits, stairs, fire equipment (elevators are a room *category*, not an object class — see below) |
+| `graph.json` | routing nodes (rooms and objects) and the distance matrix |
+| `paths.json` | precomputed route polylines between every pair of nodes |
 
-## Example
+Neither viewer runs its own pathfinding: a route is a lookup into `paths.json`.
+Node ids look like `exits-0` and `room-<guid>`. A door's `type` is server-derived
+from whichever room is classified `category: "elevator"` — it's the room, not
+the door, that a PWA should treat as authoritative for "where are the
+elevators." Full field-by-field reference:
+[docs/MAP_DATA_STORAGE.md](docs/MAP_DATA_STORAGE.md).
 
-[example/index.html](example/index.html) wires up all three components as
-native ES modules, imported straight from `../src/index.js` (see the
-`<script type="module">` block at the bottom of the file) — exactly what
-copying `src/` into a real app and importing it looks like. It points at the
-bundled floor-5 sample data in `example/data/floor5/` (copied from
-`docs/building_data/floors/5`).
+`docs/building_data/` is the Editor's own live `App_Data` (per §2 of that doc,
+floors live at `floors/{buildingId}/{floorId}/`), so it can change while the
+Editor is open — treat it as a moving snapshot, not a frozen fixture. Each
+example ships a copy taken at some point in time: `3D_fps/example/data/floor5/`
+predates the `door.type` / `elevator` category / `is_lowest_floor` fields above
+(it still works — those viewers just don't read those fields yet), while
+`3D_satellite/example/data/floors/2/1/` was copied after they landed and
+exercises all of them (an elevator door, three independent stair zones). Re-copy
+from `docs/building_data/` if you want either example on fresher data.
 
-## Using it in a .NET app
+## How each viewer uses it
 
-1. Copy the whole `src/` folder into `wwwroot/` (e.g. `wwwroot/wayfinding/`).
-   Nothing needs to be built or transformed first.
-2. Copy your floor's JSON files (`boundary.json`, `objects.json`,
-   `graph.json`, `paths.json`) somewhere under `wwwroot/` too, e.g.
-   `wwwroot/floors/5/`.
-3. In your Razor/Blazor page:
+### `3D_fps` — first-person
+
+Builds the floor as a real interior (walls with door gaps, category-coloured
+rooms, ceilings and light fixtures, sliding glass doors that open as you
+approach). Once a route is set the camera is locked to it and you press and hold
+the forward / backward buttons to walk. Use it when the goal is to *show what
+the walk looks like*. See [3D_fps/README.md](3D_fps/README.md).
+
+### `3D_satellite` — map view
+
+Shows the building from above as a clean model on a dark base: boundary walls as
+a thick light ring, rooms as slate blocks separated by thin gaps (internal walls
+are not drawn), open floor left empty, and stairs built as real steps —
+descending into a stairwell on any floor with one below it, or climbing up out
+of solid ground on the lowest floor (`is_lowest_floor`). The camera behaves like
+OpenStreetMap (drag to pan, wheel to zoom at the cursor, right-drag to rotate
+and tilt, pinch on touch). Room labels with category icons appear as you zoom
+in, skipping any room still named with its auto-generated `"Room N"`
+placeholder. Choosing a start and destination draws an animated blue route and
+drops a destination pin; a play bar walks the blue "you are here" dot along it.
+Use it for orientation, browsing places and previewing routes. See
+[3D_satellite/README.md](3D_satellite/README.md) for the full look, interaction
+table and tuning constants.
+
+## Shared architecture
+
+Both are built from decoupled components that only talk through
+`CustomEvent`s on one shared DOM element, so any component can be swapped or
+driven from a .NET/Blazor host with nothing more than
+`element.dispatchEvent(new CustomEvent(...))`.
+
+| Event | Direction | Used by | Detail |
+|---|---|---|---|
+| `wayfinding:route-change` | in | both | `{ startId, destinationId }` |
+| `wayfinding:floor-loaded` | out | both | `{ nodes }` |
+| `wayfinding:route-set` | out | both | `{ startId, destinationId, distanceMeters }` (satellite adds `durationSeconds`) |
+| `wayfinding:route-error` | out | both | `{ startId, destinationId, reason }` |
+| `wayfinding:progress` | out | both | `{ progress, distance, atStart, atEnd }` (satellite adds `total`) |
+| `wayfinding:move` | in | both | `{ direction: 'forward' \| 'backward', distance? }` |
+| `wayfinding:move-start` / `move-stop` | in | 3D_fps | press-and-hold walking |
+| `wayfinding:play` / `pause` / `seek` | in | 3D_satellite | route preview playback |
+| `wayfinding:route-clear` / `route-cleared` | in / out | 3D_satellite | clear the route |
+| `wayfinding:playback` | out | 3D_satellite | `{ playing }` |
+| `wayfinding:room-select` | out | 3D_satellite | `{ id, nodeId, name, category }` |
+
+## Using either in a .NET app
+
+1. Copy the viewer's `src/` into `wwwroot/` (e.g. `wwwroot/wayfinding/`). Nothing
+   needs building.
+2. Copy the floor's four JSON files under `wwwroot/` too, mirroring the Editor's
+   own `{buildingId}/{floorId}/` layout if you like (e.g. `wwwroot/floors/2/1/`).
+3. Import and mount it:
    ```html
-   <div id="wf-view" style="height:600px"></div>
+   <div id="map" style="height:600px"></div>
    <script type="module">
-     import { WayfindingView } from './wayfinding/index.js';
-     const view = new WayfindingView(document.getElementById('wf-view'));
-     view.loadFloor('/floors/5/');
+     // 3D_fps:        import { WayfindingView } from './wayfinding/index.js';
+     // 3D_satellite:  import { SatelliteView }  from './wayfinding/index.js';
+     import { SatelliteView } from './wayfinding/index.js';
+     const view = new SatelliteView(document.getElementById('map'));
+     view.loadFloor('/floors/2/1/');
    </script>
    ```
-4. Drive it from C# by dispatching the `CustomEvent`s from the table above on
-   the view's container element (e.g. via a tiny JS interop function, or
-   `IJSRuntime.InvokeVoidAsync("eval", ...)`), or call `view.setRoute(...)`,
-   `view.moveForward(...)`, `view.moveBackward(...)` directly if you keep a
-   JS-side reference to the view instance.
+4. Drive it by dispatching the events above on the container element, or call
+   methods on the instance (`setRoute(startId, destinationId)` on both;
+   `moveForward()` / `moveBackward()` on 3D_fps; `clearRoute()`, `play()`,
+   `setUserNode(id)`, `recenter()` on 3D_satellite).
 
-## Data model reference
-
-See [docs/MAP_DATA_STORAGE.md](docs/MAP_DATA_STORAGE.md) for the full
-on-disk JSON contract this library consumes (`boundary.json`,
-`objects.json`, `graph.json`, `paths.json`).
+If you put your own UI on top of the satellite map (a panel, a bottom bar), pass
+`getInsets` to `new SatelliteView(...)` so the camera frames the building in the
+uncovered area — see [3D_satellite/example/index.html](3D_satellite/example/index.html).

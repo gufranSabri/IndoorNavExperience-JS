@@ -4,7 +4,7 @@ import { buildFloorScene, updateDoorStates } from './core/FloorGeometryBuilder.j
 import { PathRenderer } from './core/PathRenderer.js';
 import { WalkController } from './core/WalkController.js';
 import { CameraRig } from './core/CameraRig.js';
-import { loadFloorData, buildRouteNodes, buildPathIndex, findRoute } from './core/FloorDataLoader.js';
+import { loadFloorData, buildRouteNodes, buildPathIndex, findRoute, resolveNearestByLabel } from './core/FloorDataLoader.js';
 import { createSkyGradientTexture } from './core/textures.js';
 import {
   EYE_HEIGHT,
@@ -201,6 +201,7 @@ export class WayfindingView {
   /** Programmatic equivalent of dispatching a 'wayfinding:route-change' event. */
   setRoute(startId, destinationId) {
     if (!this.pathIndex) return;
+    destinationId = resolveNearestByLabel(this.nodes, this.pathIndex, startId, destinationId);
     const result = findRoute(this.pathIndex, startId, destinationId);
     if (!result) {
       this._emit(ROUTE_ERROR_EVENT, { startId, destinationId, reason: 'no-path' });
