@@ -118,7 +118,10 @@ const STYLE = `
 .sat-dest-list-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 560px) {
   .sat-dest-picker { padding: 12px; align-items: flex-end; }
-  .sat-dest-sheet { width: 100%; max-height: 78vh; border-radius: 20px 20px 0 0; }
+  .sat-dest-sheet { width: 100%; max-height: min(78vh, 100%); border-radius: 20px 20px 0 0; }
+  /* iOS Safari zooms the page when focusing an input under 16px, which
+     leaves the sheet half off-screen. */
+  .sat-dest-search input { font-size: 16px; }
 }
 .sat-route-swap {
   appearance: none; align-self: center; flex: none; width: 36px; height: 36px; border-radius: 50%; padding: 0; cursor: pointer;
@@ -289,6 +292,20 @@ export class RouteSelector {
       if (e.key === 'Escape' && this.picker.classList.contains('is-open')) this._closePicker();
     };
     document.addEventListener('keydown', this._onKeydown);
+    // The on-screen keyboard overlays the page on phones instead of resizing
+    // it, so a bottom-anchored sheet ends up behind it. Track the visual
+    // viewport and fit the picker into whatever is actually visible.
+    this._vv = window.visualViewport;
+    this._fitToViewport = () => {
+      const vv = this._vv;
+      if (!vv) return;
+      const s = this.picker.style;
+      s.top = `${vv.offsetTop}px`;
+      s.height = `${vv.height}px`;
+      s.bottom = 'auto';
+    };
+    this._vv?.addEventListener('resize', this._fitToViewport);
+    this._vv?.addEventListener('scroll', this._fitToViewport);
     this.root.querySelector('.sat-route-swap').addEventListener('click', () => {
       const a = this.startSelect.value;
       this.startSelect.value = this.destSelect.value;
@@ -408,6 +425,7 @@ export class RouteSelector {
     this._buildCategoryGrid();
     this._showCategoryGrid();
     this.picker.classList.add('is-open');
+    this._fitToViewport();
   }
 
   _closePicker() {
@@ -517,6 +535,8 @@ export class RouteSelector {
   dispose() {
     for (const [type, fn] of Object.entries(this._handlers)) this.eventTarget.removeEventListener(type, fn);
     document.removeEventListener('keydown', this._onKeydown);
+    this._vv?.removeEventListener('resize', this._fitToViewport);
+    this._vv?.removeEventListener('scroll', this._fitToViewport);
     this.root.remove();
     this.picker.remove();
   }
