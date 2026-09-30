@@ -36,13 +36,12 @@ host can lay its own data out however it likes.
 | Background | Dark charcoal with a soft vignette (CSS, behind a transparent canvas) |
 | Base | The building outline grown by 1.7 m with rounded corners, extruded as a slab |
 | Boundary walls | The outer `Wall External` ring as one continuous, thick, light-gray band with rounded corners, and door gaps cut where external doors exist |
-| Rooms | One extruded slate block per room with rounded corners and a chamfered top edge, slightly shorter than the walls. Category adds only a whisper of tint |
-| Open offices | **Not built** (`OPEN_CATEGORIES`: `open_office`, `sub_open_office`): they stay open floor but keep a label |
+| Rooms | Each room's `category` + `attributes` pick a profile (`ROOM_RULES` → `ROOM_PROFILES` in constants.js) that sets its look: a solid block (private / closed / meeting work spaces, amenities, elevator), a permanent translucent glass box (open work space; `floor_space` with `render`: gray w/ white edges if `private`, pastel green w/ green edges otherwise), or nothing (`floor_space` without `render`) |
 | Internal walls | Not drawn. Each room is inset by half of `ROOM_GAP`, so two rooms sharing a wall end up a thin gap apart |
-| Open space | Not drawn — the base shows through (`floor_space` rooms are skipped) |
+| Open space | Not drawn — the base shows through (the whole-floor `floor-space` room is always skipped; `floor_space` rooms without `render` build nothing) |
 | Exclusion zone | On any floor but the lowest, the floor is cut open there: a black stairwell shaft going down. On the lowest floor (`is_lowest_floor`) there is nothing below to reveal, so instead the same zone's stairs simply climb up out of solid ground — no hole at all |
 | Stairs | The floor-scope stair flights and landings, built as real steps — descending *below* the floor into a shaft on every other floor, fading from light stone to black with depth, or climbing *above* solid ground on the lowest floor |
-| Labels | Category icon + name at each room's visual center, shown only once zoomed in (see below). A room the editor never renamed off its auto-generated placeholder (`"Room 7"`) gets no label and isn't offered as a search result — only a real name counts |
+| Labels | Category icon + name at each room's visual center, shown only once zoomed in (see below). Labelled and searchable exactly when the room's `navigable` flag is true; icon/color come from its profile (meeting room, toilet, food & beverage, lobby... each have their own) |
 | Route | Thick blue ribbon with a border and glow, drawn on with an animation, white chevrons flowing along it; the walked part greys out. It follows stairs up/down via the same `heightAt(x, z)` the stairs report |
 | You are here | Blue dot, white ring, pulsing halo and a heading beam — a DOM element, so it stays crisp at any zoom |
 | Destination | Red pin with the place name |
@@ -162,7 +161,7 @@ camera frames things in the free area — see [example/index.html](example/index
 
 All in [src/core/constants.js](src/core/constants.js): `COLORS`, `WALL_HEIGHT`,
 `ROOM_HEIGHT`, `ROOM_GAP`, `WALL_THICKNESS`, the `*_CORNER_RADIUS` values, `BASE_MARGIN`,
-`CATEGORY_TINT`, `STAIR_RISE` / `STAIR_TREAD`, `DEFAULT_VOID_DEPTH`, category /
-object icons and colors (`CATEGORY_STYLE`, `OBJECT_STYLE`), camera limits, and
+`STAIR_RISE` / `STAIR_TREAD`, `DEFAULT_VOID_DEPTH`, room profiles
+(`ROOM_PROFILES`, `ROOM_RULES`, `ROOM_NAME_ACCENTS`), object icons and colors (`OBJECT_STYLE`), camera limits, and
 route width / corner radius / animation speed. Heights are deliberately a
 little taller than real life so the model reads well from above.

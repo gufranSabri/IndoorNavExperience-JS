@@ -8351,6 +8351,212 @@
     ],
     "rooms": [
       {
+        "id": "floor-space",
+        "name": "Floor",
+        "area": 851525.28,
+        "status": "active",
+        "wall_ids": [
+          "a12afa4a-79b1-41e1-ba15-c37d95434e4b",
+          "645ea965-3575-478e-916f-300dac8e1cf8",
+          "45d3e26c-fa9a-4cac-9cf1-efdfad4fd6cf",
+          "226fe4b1-f659-40af-bc67-df407106620b",
+          "bf80b0f3-3d64-49f1-b735-eacc169d7b93",
+          "07372049-814b-45a3-a91d-191cc7685913",
+          "99736b27-23b6-4716-94a8-0439f1c774b8",
+          "b717f06e-8ad8-482a-91b2-547cad60c1ea",
+          "bed7ec1c-6035-402b-8d74-d559c1c039a8",
+          "a06e8e2b-9087-4378-8d88-535dc75fc739",
+          "4fb2a4ae-cd9b-4818-98af-8a103440e0df",
+          "245c96af-3de2-4bbb-a822-f5c6f166b304",
+          "1b81575f-1bb3-41b5-8468-839ce0b68295",
+          "98845e46-e80d-4686-88cc-74411dcbab11",
+          "41fecc1e-781b-4cf2-937a-2b7286820448",
+          "5834910e-89a9-4574-a630-9fc9c747e27d",
+          "ba9f7249-ce86-455b-9964-120318394583",
+          "034be350-2d22-473c-adab-8f783ce655ad",
+          "73153bb9-cf38-4ffb-a09a-534c4ddd9a99",
+          "687c8de4-6e7d-4649-8f0e-214f52086a29",
+          "3c1d84ab-c8ce-41f5-beda-90a6ccc7a621",
+          "24004fa4-61a5-4b2b-aa74-0cf23630b660",
+          "8cb23b43-9e47-49f2-9121-3fe295519955",
+          "f665185f-0965-4fad-a42e-09f3fdb7414d",
+          "2337f0af-719a-413f-8946-c2c9f31953a1",
+          "eb8a42c1-3443-4a5e-a254-66ead79b6d1b",
+          "37223d13-dfa0-49d2-8d18-2541ec432e64",
+          "63d5f849-63d5-49ad-932b-9191c8a156d8",
+          "e81b2b1b-7b43-4ce9-b3ae-6c4f0d70d95c",
+          "a30e3a75-8b71-4227-aad8-d4c5d84f6b37",
+          "5de70734-7f74-4cf9-8508-77e332e007b2",
+          "92b1a2d9-d113-4298-b27a-c469c260bd75",
+          "b095ec15-c273-426d-ac85-78afbf11c14b",
+          "1d2c7e80-a32b-4c23-b884-f0b057973924",
+          "963ff518-3f8f-4ff8-84d6-c71049a58b6e",
+          "39b1a702-5b20-498f-97c9-f98f97593dc2",
+          "f30e9e1e-5b63-4e4b-945b-b8ec5ae5efb2",
+          "254f10d0-9d49-4f88-9794-4d37525fc7a0",
+          "400e9882-9fc6-49c8-acea-09a086c04ea7"
+        ],
+        "polygon": [
+          [
+            308.8284,
+            90.0876
+          ],
+          [
+            216.9071,
+            88.9497
+          ],
+          [
+            184.3705,
+            119.4627
+          ],
+          [
+            57.5107,
+            235.7179
+          ],
+          [
+            32.3355,
+            258.8987
+          ],
+          [
+            31.8267,
+            316.5776
+          ],
+          [
+            31.3882,
+            392.902
+          ],
+          [
+            31.5234,
+            440.1599
+          ],
+          [
+            53.4018,
+            462.0998
+          ],
+          [
+            206.2748,
+            615.4028
+          ],
+          [
+            259.3901,
+            668.6174
+          ],
+          [
+            291.4749,
+            701.4358
+          ],
+          [
+            341.212,
+            750.7195
+          ],
+          [
+            443.3142,
+            852.4663
+          ],
+          [
+            493.3257,
+            902.1957
+          ],
+          [
+            523.5343,
+            932.9577
+          ],
+          [
+            561.213,
+            970.3344
+          ],
+          [
+            597.4395,
+            1007.6677
+          ],
+          [
+            773.2106,
+            1007.1958
+          ],
+          [
+            930.1334,
+            856.3294
+          ],
+          [
+            969.9475,
+            819.8837
+          ],
+          [
+            1037.6317,
+            753.23
+          ],
+          [
+            1087.2048,
+            705.32
+          ],
+          [
+            1116.7554,
+            676.9099
+          ],
+          [
+            1174.097,
+            621.7813
+          ],
+          [
+            1258.9169,
+            540.235
+          ],
+          [
+            1345.5559,
+            456.9397
+          ],
+          [
+            1354.9311,
+            447.9264
+          ],
+          [
+            1354.7196,
+            380.5527
+          ],
+          [
+            1355.5107,
+            299.1612
+          ],
+          [
+            1355.5718,
+            286.2993
+          ],
+          [
+            1332.2869,
+            262.9433
+          ],
+          [
+            1300.1697,
+            230.728
+          ],
+          [
+            1252.9051,
+            183.3192
+          ],
+          [
+            1226.6474,
+            156.9813
+          ],
+          [
+            1170.5924,
+            100.7552
+          ],
+          [
+            1119.1584,
+            100.1185
+          ],
+          [
+            960.5615,
+            98.1552
+          ],
+          [
+            898.2919,
+            97.3844
+          ]
+        ],
+        "category": "floor_space"
+      },
+      {
         "id": "9fec9a5c-5bfe-4164-ac81-fd72226160ef",
         "name": "Room 1",
         "area": 323046.86,
@@ -8624,9 +8830,7 @@
             316.6152
           ]
         ],
-        "category": "work_space",
-        "attributes": [],
-        "navigable": false
+        "category": "open_office"
       },
       {
         "id": "1b0f893a-0528-4ae4-9670-6461790d4060",
@@ -8777,9 +8981,7 @@
             271.0282
           ]
         ],
-        "category": "floor_space",
-        "attributes": [],
-        "navigable": false
+        "category": "floor_space"
       },
       {
         "id": "a466e417-5a7a-4be9-af65-c7478346506e",
@@ -8870,9 +9072,7 @@
             970.3344
           ]
         ],
-        "category": "work_space",
-        "attributes": [],
-        "navigable": false
+        "category": "open_office"
       },
       {
         "id": "dca38a85-2b5f-455d-9320-5906eb018e41",
@@ -8983,9 +9183,7 @@
             713.9534
           ]
         ],
-        "category": "work_space",
-        "attributes": [],
-        "navigable": false
+        "category": "open_office"
       },
       {
         "id": "ba1770e0-5726-41c1-af60-37124fdd8121",
@@ -9051,11 +9249,7 @@
             611.9878
           ]
         ],
-        "category": "work_space",
-        "attributes": [
-          "closed"
-        ],
-        "navigable": true
+        "category": "closed_office"
       },
       {
         "id": "65666313-c127-41fa-88cd-a053445321cd",
@@ -9086,12 +9280,7 @@
             385.7414
           ]
         ],
-        "category": "work_space",
-        "attributes": [
-          "closed",
-          "meeting_room"
-        ],
-        "navigable": true
+        "category": "meeting_room"
       },
       {
         "id": "23513452-7365-4bb4-a1d9-8262c94986e1",
@@ -9127,11 +9316,7 @@
             541.4677
           ]
         ],
-        "category": "work_space",
-        "attributes": [
-          "closed"
-        ],
-        "navigable": true
+        "category": "closed_office"
       },
       {
         "id": "5c8b597e-82a0-4e42-8e44-c4668e00eccc",
@@ -9192,12 +9377,7 @@
             762.1951
           ]
         ],
-        "category": "work_space",
-        "attributes": [
-          "private",
-          "closed"
-        ],
-        "navigable": false
+        "category": "closed_office"
       },
       {
         "id": "a29deaac-a1cd-4af0-abc9-e5ebb60e883c",
@@ -9253,12 +9433,7 @@
             480.0251
           ]
         ],
-        "category": "work_space",
-        "attributes": [
-          "private",
-          "closed"
-        ],
-        "navigable": false
+        "category": "closed_office"
       },
       {
         "id": "107c32c8-9b05-491d-8cc1-e17310d83d20",
@@ -9289,12 +9464,7 @@
             170.7085
           ]
         ],
-        "category": "work_space",
-        "attributes": [
-          "private",
-          "closed"
-        ],
-        "navigable": false
+        "category": "closed_office"
       },
       {
         "id": "2326a63f-b755-4073-bd0e-3747862f1f94",
@@ -9355,12 +9525,7 @@
             424.3453
           ]
         ],
-        "category": "floor_space",
-        "attributes": [
-          "private",
-          "render"
-        ],
-        "navigable": false
+        "category": "other"
       },
       {
         "id": "a07cf5f6-0ff9-4aa0-b7d2-fb64f235cc2a",
@@ -9391,12 +9556,7 @@
             731.5985
           ]
         ],
-        "category": "work_space",
-        "attributes": [
-          "private",
-          "closed"
-        ],
-        "navigable": false
+        "category": "closed_office"
       },
       {
         "id": "000ba2c0-01ae-4b99-92b8-502a03f94eb8",
@@ -9437,12 +9597,7 @@
             564.8568
           ]
         ],
-        "category": "work_space",
-        "attributes": [
-          "private",
-          "closed"
-        ],
-        "navigable": false
+        "category": "closed_office"
       },
       {
         "id": "0fb9eebd-ad11-41ce-8585-d5a20de2b75a",
@@ -9478,12 +9633,7 @@
             523.0825
           ]
         ],
-        "category": "floor_space",
-        "attributes": [
-          "private",
-          "render"
-        ],
-        "navigable": false
+        "category": "other"
       },
       {
         "id": "01487340-3aa2-418d-985a-352808fc4fee",
@@ -9519,12 +9669,7 @@
             564.8568
           ]
         ],
-        "category": "floor_space",
-        "attributes": [
-          "private",
-          "render"
-        ],
-        "navigable": false
+        "category": "other"
       },
       {
         "id": "731377e2-4999-488c-a9e4-52a4ce5a2ede",
@@ -9580,9 +9725,7 @@
             502.6296
           ]
         ],
-        "category": "floor_space",
-        "attributes": [],
-        "navigable": false
+        "category": "floor_space"
       },
       {
         "id": "b7bf2909-08e5-4e76-bef8-454c1658535d",
@@ -9638,12 +9781,7 @@
             230.2451
           ]
         ],
-        "category": "work_space",
-        "attributes": [
-          "private",
-          "closed"
-        ],
-        "navigable": false
+        "category": "closed_office"
       },
       {
         "id": "847bc21e-ae01-4604-be85-f75d4dba1f0c",
@@ -9679,12 +9817,7 @@
             655.2143
           ]
         ],
-        "category": "work_space",
-        "attributes": [
-          "closed",
-          "meeting_room"
-        ],
-        "navigable": true
+        "category": "meeting_room"
       },
       {
         "id": "3efaeaec-c70c-45b9-bd72-0de2df8a9c80",
@@ -9735,9 +9868,7 @@
             676.9099
           ]
         ],
-        "category": "floor_space",
-        "attributes": [],
-        "navigable": false
+        "category": "floor_space"
       },
       {
         "id": "1294ccb6-6ad1-4a88-958e-02d681a24a20",
@@ -9768,12 +9899,7 @@
             162.4715
           ]
         ],
-        "category": "work_space",
-        "attributes": [
-          "closed",
-          "meeting_room"
-        ],
-        "navigable": true
+        "category": "meeting_room"
       },
       {
         "id": "0c8d2d63-42be-4991-ac19-8e0951d2db61",
@@ -9804,12 +9930,7 @@
             611.9878
           ]
         ],
-        "category": "work_space",
-        "attributes": [
-          "closed",
-          "meeting_room"
-        ],
-        "navigable": true
+        "category": "meeting_room"
       },
       {
         "id": "f6a3f28a-a12f-4073-aa0d-33336ccbb302",
@@ -9840,11 +9961,7 @@
             557.823
           ]
         ],
-        "category": "amenities",
-        "attributes": [
-          "toilet"
-        ],
-        "navigable": true
+        "category": "toilet"
       },
       {
         "id": "07fa571e-8a72-418f-977c-520609ca4324",
@@ -9880,11 +9997,7 @@
             551.4564
           ]
         ],
-        "category": "amenities",
-        "attributes": [
-          "toilet"
-        ],
-        "navigable": true
+        "category": "toilet"
       },
       {
         "id": "573b027c-5659-43ff-b5cb-44718732b0a5",
@@ -9915,11 +10028,7 @@
             162.8006
           ]
         ],
-        "category": "work_space",
-        "attributes": [
-          "closed"
-        ],
-        "navigable": false
+        "category": "closed_office"
       },
       {
         "id": "150224be-7dff-4531-9a14-e9b60c2b2500",
@@ -9950,11 +10059,7 @@
             489.8147
           ]
         ],
-        "category": "amenities",
-        "attributes": [
-          "toilet"
-        ],
-        "navigable": true
+        "category": "toilet"
       },
       {
         "id": "b58ea251-99ed-4439-b1df-8e4f9df53978",
@@ -9995,12 +10100,7 @@
             392.6785
           ]
         ],
-        "category": "floor_space",
-        "attributes": [
-          "private",
-          "render"
-        ],
-        "navigable": false
+        "category": "other"
       },
       {
         "id": "ea9c09ee-5a68-488c-9e1a-6094a62a9b50",
@@ -10031,11 +10131,7 @@
             456.8036
           ]
         ],
-        "category": "amenities",
-        "attributes": [
-          "toilet"
-        ],
-        "navigable": true
+        "category": "toilet"
       },
       {
         "id": "6ebf647d-bbd3-4c1c-82e4-8197eacbeee7",
@@ -10066,12 +10162,7 @@
             870.9118
           ]
         ],
-        "category": "work_space",
-        "attributes": [
-          "private",
-          "closed"
-        ],
-        "navigable": false
+        "category": "other"
       },
       {
         "id": "be697122-0ae3-42e7-a028-4fec3b4680af",
@@ -10107,12 +10198,7 @@
             391.0055
           ]
         ],
-        "category": "floor_space",
-        "attributes": [
-          "private",
-          "render"
-        ],
-        "navigable": false
+        "category": "closed_office"
       },
       {
         "id": "647d227e-2e22-4fcb-95a5-e746010fc63d",
@@ -10143,12 +10229,7 @@
             278.8347
           ]
         ],
-        "category": "work_space",
-        "attributes": [
-          "private",
-          "closed"
-        ],
-        "navigable": false
+        "category": "closed_office"
       },
       {
         "id": "0cace3e2-5611-41c1-9610-533d6a0b166f",
@@ -10184,12 +10265,7 @@
             293.0553
           ]
         ],
-        "category": "work_space",
-        "attributes": [
-          "private",
-          "closed"
-        ],
-        "navigable": true
+        "category": "closed_office"
       },
       {
         "id": "a0f44a29-2fa8-4ff4-ac67-fc401bdacfe8",
@@ -10220,12 +10296,7 @@
             810.551
           ]
         ],
-        "category": "work_space",
-        "attributes": [
-          "private",
-          "closed"
-        ],
-        "navigable": false
+        "category": "closed_office"
       },
       {
         "id": "5794397b-4ccd-49b7-bb18-b5ca9bb2b0d8",
@@ -10276,12 +10347,7 @@
             107.6881
           ]
         ],
-        "category": "work_space",
-        "attributes": [
-          "closed",
-          "meeting_room"
-        ],
-        "navigable": true
+        "category": "meeting_room"
       },
       {
         "id": "501a2e9b-1be5-46cc-a0ef-0d81a44f459a",
@@ -10312,12 +10378,7 @@
             701.4358
           ]
         ],
-        "category": "floor_space",
-        "attributes": [
-          "private",
-          "render"
-        ],
-        "navigable": false
+        "category": "other"
       },
       {
         "id": "22dad0fb-b89f-4221-8eb2-763a4525b343",
@@ -10348,12 +10409,7 @@
             170.7085
           ]
         ],
-        "category": "work_space",
-        "attributes": [
-          "private",
-          "closed"
-        ],
-        "navigable": true
+        "category": "closed_office"
       },
       {
         "id": "b1a57486-0439-4cb5-aa05-d4eea357fd7c",
@@ -10384,12 +10440,7 @@
             138.1972
           ]
         ],
-        "category": "work_space",
-        "attributes": [
-          "private",
-          "closed"
-        ],
-        "navigable": true
+        "category": "closed_office"
       },
       {
         "id": "c8e1fb95-bb0b-40ec-89ab-d9bb8c254b0a",
@@ -10420,12 +10471,7 @@
             312.641
           ]
         ],
-        "category": "work_space",
-        "attributes": [
-          "private",
-          "closed"
-        ],
-        "navigable": false
+        "category": "closed_office"
       },
       {
         "id": "ae443af6-9627-49d1-8f80-b71a273eb02d",
@@ -10461,12 +10507,7 @@
             339.6195
           ]
         ],
-        "category": "work_space",
-        "attributes": [
-          "private",
-          "closed"
-        ],
-        "navigable": false
+        "category": "closed_office"
       },
       {
         "id": "2182799b-00bb-43c4-8db4-bf4065fdab08",
@@ -10497,9 +10538,7 @@
             425.4323
           ]
         ],
-        "category": "elevator",
-        "attributes": [],
-        "navigable": true
+        "category": "elevator"
       },
       {
         "id": "fa6dd11b-46b0-475d-a90d-f1810918474a",
@@ -10530,11 +10569,7 @@
             601.1608
           ]
         ],
-        "category": "floor_space",
-        "attributes": [
-          "private"
-        ],
-        "navigable": false
+        "category": "other"
       }
     ],
     "floor_scope": {

@@ -1,19 +1,24 @@
 {
   "exits": [
     {
-      "x": 356.6962,
-      "y": 704.2328,
-      "label": "Emergency Exit"
-    },
-    {
-      "x": 1153.2509,
-      "y": 697.9717,
-      "label": "Emergency Exit"
-    },
-    {
       "x": 750.9132,
       "y": 187.5405,
       "label": "Main Exit"
+    },
+    {
+      "x": 101.9615,
+      "y": 381.4567,
+      "label": "Side Exit"
+    },
+    {
+      "x": 1101.8954,
+      "y": 743.2196,
+      "label": "Side Exit"
+    },
+    {
+      "x": 406.7393,
+      "y": 740.8899,
+      "label": "Side Exit"
     }
   ],
   "wayfinding-kiosk": [

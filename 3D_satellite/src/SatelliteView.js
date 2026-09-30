@@ -3,7 +3,7 @@ import { createProjector } from './core/coords.js';
 import { buildBuilding } from './core/BuildingBuilder.js';
 import { MapControls, fitDistanceForPoints } from './core/MapControls.js';
 import { RouteRenderer } from './core/RouteRenderer.js';
-import { loadFloorData, buildRouteNodes, buildPathIndex, findRoute, isGenericRoomLabel, resolveNearestByLabel } from './core/FloorDataLoader.js';
+import { loadFloorData, buildRouteNodes, buildPathIndex, findRoute, resolveNearestByLabel, pickDefaultStartNode } from './core/FloorDataLoader.js';
 import { pointInPolygon } from './core/polygon.js';
 import { LabelLayer } from './ui/LabelLayer.js';
 import { UserMarker, DestinationPin } from './ui/Markers.js';
@@ -216,13 +216,15 @@ export class SatelliteView {
 
     const { boundary } = floorData;
     this.projector = createProjector(boundary.image, boundary.scale?.metersPerPixel);
-    this.building = buildBuilding(boundary, this.projector);
+    this.building = buildBuilding(boundary, this.projector, floorData.objects);
     this.scene.add(this.building.root);
     this.pathIndex = buildPathIndex(floorData.paths);
     this.nodes = buildRouteNodes(floorData);
     this.nodeById = new Map(this.nodes.map((n) => [n.id, n]));
+    /** Id of the kiosk closest to a main exit, or null — the default start. */
+    this.defaultStartNodeId = pickDefaultStartNode(this.nodes, this.pathIndex);
     this.roomByNodeId = new Map(this.building.rooms.map((r) => [r.nodeId, r]));
-    // Every named place: solid rooms plus open areas (which have no solid, only a label).
+    // Every place: solid rooms plus glass / unbuilt areas.
     this.placeByNodeId = new Map([...this.building.rooms, ...this.building.areas].map((r) => [r.nodeId, r]));
 
     const box = this.building.bounds;
@@ -237,7 +239,7 @@ export class SatelliteView {
     this._pendingIntro = true;
     this._maybeIntro();
 
-    this.eventTarget.dispatchEvent(new CustomEvent(FLOOR_LOADED_EVENT, { detail: { nodes: this.nodes }, bubbles: true }));
+    this.eventTarget.dispatchEvent(new CustomEvent(FLOOR_LOADED_EVENT, { detail: { nodes: this.nodes, defaultStartId: this.defaultStartNodeId }, bubbles: true }));
     return this.nodes;
   }
 
@@ -245,7 +247,7 @@ export class SatelliteView {
     const { rooms, areas, objects, heightAt } = this.building;
     const items = [];
     for (const room of rooms) {
-      if (room.restricted || isGenericRoomLabel(room.name)) continue;
+      if (!room.navigable) continue;
       items.push({
         id: room.id,
         kind: 'room',
@@ -258,10 +260,10 @@ export class SatelliteView {
         priority: room.area,
       });
     }
-    // An open office now has a (translucent) roof of its own to sit on; only
-    // a mesh-less area (e.g. one too small to build) falls back to the floor.
+    // A glass area has a (translucent) roof of its own to sit on; only a
+    // mesh-less area (unbuilt, or too small to build) falls back to the floor.
     for (const area of areas) {
-      if (isGenericRoomLabel(area.name)) continue;
+      if (!area.navigable) continue;
       items.push({
         id: area.id,
         kind: 'room',
@@ -281,7 +283,7 @@ export class SatelliteView {
         name: object.name,
         style: object.style,
         x: object.x,
-        y: heightAt(object.x, object.z) + 1.4,
+        y: heightAt(object.x, object.z) + (object.labelHeight ?? 1.4),
         z: object.z,
         radius: 0,
         priority: 1e9,
@@ -639,7 +641,7 @@ export class SatelliteView {
     if (id === this.selectedRoomId) id = null;
     this.selectedRoomId = id;
     const room = this.building?.rooms.find((r) => r.id === id);
-    this._emit(ROOM_SELECT_EVENT, room ? { id: room.id, nodeId: room.nodeId, name: room.name, category: room.category } : { id: null });
+    this._emit(ROOM_SELECT_EVENT, room ? { id: room.id, nodeId: room.nodeId, name: room.name, category: room.category, profile: room.profile.key } : { id: null });
   }
 
   // ---- per-frame ------------------------------------------------------
@@ -670,7 +672,7 @@ export class SatelliteView {
       tint.set(COLORS.hover);
       material.color.copy(room.baseColor).lerp(tint, state.hover * 0.16);
       // Being on the active route (start/destination/crossed) tints red, not
-      // the accent blue — blue is now permanently what an open office looks like.
+      // the accent blue — blue is what an open work area's glass box looks like.
       tint.set(COLORS.destination);
       material.color.lerp(tint, state.accent * 0.5);
       material.emissiveIntensity = room.emissiveFloor + state.accent * 0.08 + state.hover * 0.05;
@@ -688,6 +690,7 @@ export class SatelliteView {
         mesh.castShadow = shadowCaster;
         this._shadowDirty = true;
       }
+      for (const d of room.decor) d.visible = state.glass < 0.5;
       const outline = Math.max(state.glass * 0.9, room.outlineFloor);
       edges.visible = outline > 0.01;
       edges.material.opacity = outline;

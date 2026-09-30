@@ -1,6 +1,6 @@
 import { icon } from './ui/icons.js';
-import { isGenericRoomLabel, dedupeNodesByLabel, labelKey } from './core/FloorDataLoader.js';
-import { CATEGORY_STYLE, OBJECT_STYLE } from './core/constants.js';
+import { dedupeNodesByLabel, labelKey } from './core/FloorDataLoader.js';
+import { OBJECT_STYLE, PICKER_CATEGORIES } from './core/constants.js';
 import {
   FLOOR_LOADED_EVENT,
   ROUTE_CHANGE_EVENT,
@@ -92,6 +92,16 @@ const STYLE = `
   border: 1px solid var(--border); background: rgba(255,255,255,.06); color: var(--text);
   font: 500 14px/1 inherit; font-family: inherit; color-scheme: dark; cursor: pointer;
 }
+.sat-dest-search { position: relative; display: block; margin-bottom: 22px; }
+.sat-dest-search svg { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+.sat-dest-search input {
+  width: 100%; height: 42px; padding: 0 14px 0 38px; border-radius: 11px; border: 1px solid var(--border);
+  background: rgba(255,255,255,.06); color: var(--text); font: 500 14px/1 inherit; font-family: inherit;
+  -webkit-user-select: text; user-select: text; outline: none;
+}
+.sat-dest-search input:focus { border-color: #4285f4; }
+.sat-dest-search input::placeholder { color: var(--muted); }
+.sat-dest-empty { padding: 18px 8px; text-align: center; font-size: 13px; color: var(--muted); }
 .sat-dest-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); gap: 16px 6px; }
 .sat-dest-cat { appearance: none; border: 0; background: transparent; color: var(--text); display: flex; flex-direction: column; align-items: center; gap: 7px; cursor: pointer; padding: 2px 0; }
 .sat-dest-cat-circle { width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; background: var(--c); color: #0d0f13; transition: transform .15s ease; }
@@ -171,7 +181,8 @@ export function formatDistance(meters) {
  * both fields have a value, dispatches 'wayfinding:route-change'. It also
  * shows the distance / walking time from 'wayfinding:route-set'.
  *
- * options.defaultStartId pre-selects the start (e.g. the entrance "you" are at).
+ * options.defaultStartId pre-selects the start; without it, the floor's
+ * default (the kiosk nearest a "main exit", SatelliteView.defaultStartNodeId) is used.
  */
 export class RouteSelector {
   constructor(container, options = {}) {
@@ -220,9 +231,10 @@ export class RouteSelector {
           <button type="button" class="sat-dest-header-btn" data-role="close" aria-label="Close">${icon('close', { size: 16, stroke: 2.3 })}</button>
         </div>
         <div class="sat-dest-body">
+          <label class="sat-dest-search">${icon('search', { size: 16, stroke: 2.2 })}<input type="search" data-role="search" placeholder="Search or scroll all places" autocomplete="off" aria-label="Search places"></label>
+          <select data-role="start" aria-label="Start" hidden></select>
+          <select data-role="dest" aria-label="Destination" hidden></select>
           <div data-role="grid-wrap">
-            <label class="sat-field sat-dest-select" data-role="start-select-wrap"><select data-role="start" aria-label="Start"></select></label>
-            <label class="sat-field sat-dest-select" data-role="dest-select-wrap"><select data-role="dest" aria-label="Destination"></select></label>
             <div class="sat-dest-grid" data-role="grid"></div>
           </div>
           <div class="sat-dest-list" data-role="list" hidden></div>
@@ -243,8 +255,7 @@ export class RouteSelector {
     this.pickerTitle = this.picker.querySelector('[data-role="picker-title"]');
     this.pickerBack = this.picker.querySelector('[data-role="back"]');
     this.pickerGridWrap = this.picker.querySelector('[data-role="grid-wrap"]');
-    this.startSelectWrap = this.picker.querySelector('[data-role="start-select-wrap"]');
-    this.destSelectWrap = this.picker.querySelector('[data-role="dest-select-wrap"]');
+    this.pickerSearch = this.picker.querySelector('[data-role="search"]');
     this.pickerGrid = this.picker.querySelector('[data-role="grid"]');
     this.pickerList = this.picker.querySelector('[data-role="list"]');
     // The picker floats outside `this.root`, so it needs its own guard
@@ -253,7 +264,7 @@ export class RouteSelector {
     this.picker.addEventListener('wheel', (e) => e.stopPropagation());
 
     this._handlers = {
-      [FLOOR_LOADED_EVENT]: (e) => this.setNodes(e.detail?.nodes || []),
+      [FLOOR_LOADED_EVENT]: (e) => this.setNodes(e.detail?.nodes || [], e.detail?.defaultStartId),
       [ROUTE_ERROR_EVENT]: (e) => {
         this.root.classList.remove('has-route');
         this.errorEl.textContent = e.detail?.reason === 'no-path' ? 'No route found between those two places.' : 'Could not set route.';
@@ -271,6 +282,9 @@ export class RouteSelector {
     this.picker.querySelector('[data-role="close"]').addEventListener('click', () => this._closePicker());
     this.picker.querySelector('[data-role="backdrop"]').addEventListener('click', () => this._closePicker());
     this.pickerBack.addEventListener('click', () => this._showCategoryGrid());
+    // Focusing the box opens the full scrollable list; typing filters it.
+    this.pickerSearch.addEventListener('focus', () => this._showSearchResults());
+    this.pickerSearch.addEventListener('input', () => this._showSearchResults());
     this._onKeydown = (e) => {
       if (e.key === 'Escape' && this.picker.classList.contains('is-open')) this._closePicker();
     };
@@ -322,21 +336,25 @@ export class RouteSelector {
     if (this.nodes.some((n) => n.id === previous)) select.value = previous;
   }
 
-  setNodes(nodes) {
-    // A room the editor never gave a real name to ("Room 7") isn't worth
-    // offering as a destination — only its category-less placeholder name,
-    // never something an actual visitor would search for.
-    this.nodes = dedupeNodesByLabel(
-      nodes.filter((n) => n.reachable && !(n.class === 'room' && isGenericRoomLabel(n.label)))
-    );
+  setNodes(nodes, floorDefaultStartId = null) {
+    // Room nodes are already limited to `navigable` rooms (buildRouteNodes).
+    this.nodes = dedupeNodesByLabel(nodes.filter((n) => n.reachable));
     this._allNodes = nodes;
+    // A new floor's node ids mean nothing on the old one: drop any selection and route summary.
+    this.startSelect.value = '';
+    this.destSelect.value = '';
+    this.errorEl.textContent = '';
+    this.root.classList.remove('has-route');
     this._fill(this.startSelect, 'Choose starting point');
     this._fill(this.destSelect, 'Choose destination');
     this.startTrigger.disabled = this.startSelect.disabled;
     this.destTrigger.disabled = this.destSelect.disabled;
-    if (!this.startSelect.value && this.defaultStartId && this.nodes.some((n) => n.id === this.defaultStartId)) {
-      this.startSelect.value = this.defaultStartId;
-    }
+    // An explicit option wins; otherwise the floor's own pick (kiosk nearest a main exit).
+    // Nodes sharing a name were deduped out of the list, so fall back to the survivor.
+    const wanted = this.defaultStartId || floorDefaultStartId;
+    const target = nodes.find((n) => n.id === wanted);
+    const startNode = target && this.nodes.find((n) => n.id === target.id || labelKey(n.label) === labelKey(target.label));
+    if (!this.startSelect.value && startNode) this.startSelect.value = startNode.id;
     this._updateStartTrigger();
     this._updateDestTrigger();
   }
@@ -386,8 +404,7 @@ export class RouteSelector {
     const trigger = field === 'start' ? this.startTrigger : this.destTrigger;
     if (trigger.disabled) return;
     this._activeField = field;
-    this.startSelectWrap.hidden = field !== 'start';
-    this.destSelectWrap.hidden = field !== 'dest';
+    this.pickerSearch.value = '';
     this._buildCategoryGrid();
     this._showCategoryGrid();
     this.picker.classList.add('is-open');
@@ -402,28 +419,40 @@ export class RouteSelector {
     this.pickerBack.hidden = true;
     this.pickerGridWrap.hidden = false;
     this.pickerList.hidden = true;
+    this.pickerSearch.value = '';
+    this.pickerSearch.blur();
   }
 
-  // One round icon button per room category actually present on this floor
-  // (open_office / sub_open_office share a bucket since they share a label),
-  // plus a catch-all "Other" bucket for every non-room searchable node
-  // (exits, stairs, fire equipment...), always last.
+  // Every place, in category order, filtered by the search box (case-insensitive substring).
+  _showSearchResults() {
+    const query = labelKey(this.pickerSearch.value);
+    const items = (this._allItems || []).filter(({ node }) => !query || labelKey(node.label).includes(query));
+    this._renderList(query ? 'Search results' : 'All places', items, { keepSearch: true });
+  }
+
+  // One round icon button per room category (PICKER_CATEGORIES) that has
+  // searchable rooms on this floor, plus a catch-all "Other" bucket, always
+  // last, for every non-room node (exits, stairs, fire equipment...) and any
+  // room with no category.
   _buildCategoryGrid() {
     const buckets = new Map();
     const other = [];
     for (const node of this.nodes) {
-      if (node.class === 'room') {
-        const style = CATEGORY_STYLE[node.category] || CATEGORY_STYLE.default;
-        if (!buckets.has(style.label)) buckets.set(style.label, { style, items: [] });
-        buckets.get(style.label).items.push({ node, style });
+      const group = node.class === 'room' && PICKER_CATEGORIES.find((g) => g.category === node.category);
+      if (group) {
+        const style = { label: group.label, color: group.tint, icon: group.icon };
+        if (!buckets.has(group.category)) buckets.set(group.category, { style, items: [] });
+        buckets.get(group.category).items.push({ node, style: node.profile ? { label: node.profile.label, color: node.profile.tint, icon: node.profile.icon } : style });
       } else {
-        other.push({ node, style: OBJECT_STYLE[node.class] || OBJECT_STYLE.default });
+        other.push({ node, style: node.class === 'room' ? { color: '#9aa4b2', icon: 'box' } : OBJECT_STYLE[node.class] || OBJECT_STYLE.default });
       }
     }
-    if (other.length) buckets.set(OTHER_STYLE.label, { style: OTHER_STYLE, items: other });
+    const ordered = new Map(PICKER_CATEGORIES.filter((g) => buckets.has(g.category)).map((g) => [g.label, buckets.get(g.category)]));
+    if (other.length) ordered.set(OTHER_STYLE.label, { style: OTHER_STYLE, items: other });
 
+    this._allItems = [...ordered.values()].flatMap((b) => b.items);
     this.pickerGrid.innerHTML = '';
-    for (const [label, { style, items }] of buckets) {
+    for (const [label, { style, items }] of ordered) {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'sat-dest-cat';
@@ -436,11 +465,17 @@ export class RouteSelector {
   // `items` is [{ node, style }, ...] — each keeps its own icon/color, since
   // the "Other" bucket mixes several different node classes together.
   _showCategoryList(label, items) {
+    this._renderList(label, items);
+  }
+
+  _renderList(label, items, { keepSearch = false } = {}) {
+    if (!keepSearch) this.pickerSearch.value = '';
     this.pickerTitle.textContent = label;
     this.pickerBack.hidden = false;
     this.pickerGridWrap.hidden = true;
     this.pickerList.hidden = false;
     this.pickerList.innerHTML = '';
+    if (!items.length) this.pickerList.innerHTML = '<div class="sat-dest-empty">No matching places</div>';
     for (const { node, style } of items) {
       const item = document.createElement('button');
       item.type = 'button';

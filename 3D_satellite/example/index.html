@@ -39,6 +39,13 @@
     }
     .brand { display: flex; align-items: baseline; justify-content: space-between; margin: 2px 2px 14px; }
     .brand h1 { margin: 0; font-size: 17px; font-weight: 650; letter-spacing: -0.01em; }
+    .floor-switch { display: flex; gap: 4px; padding: 3px; margin: 0 0 14px; border-radius: 12px; background: rgba(255,255,255,.06); }
+    .floor-switch button {
+      appearance: none; flex: 1; height: 32px; border: 0; border-radius: 9px; background: transparent; color: var(--sat-muted);
+      font: 600 13px/1 inherit; font-family: inherit; cursor: pointer; transition: background .15s ease, color .15s ease;
+    }
+    .floor-switch button:hover { color: var(--sat-text); }
+    .floor-switch button.is-active { background: rgba(255,255,255,.14); color: var(--sat-text); }
     .brand span { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--sat-muted); }
 
     /* Desktop-only "open on your phone" card. On phones (<= 560px, where the
@@ -85,7 +92,8 @@
   <div id="map"></div>
 
   <div class="panel">
-    <div class="brand"><h1>Floor 2</h1><span>Indoor map</span></div>
+    <div class="brand"><h1 id="floor-title">Floor 1</h1><span>Indoor map</span></div>
+    <div class="floor-switch" id="floor-switch" role="tablist" aria-label="Floor"></div>
     <div id="selector"></div>
   </div>
 
@@ -129,21 +137,44 @@
 
     const view = new SatelliteView(mapEl, { eventTarget: mapEl, getInsets });
 
-    // The wayfinding kiosk is where the blue "you are here" dot starts,
-    // and the pre-selected start of any route.
-    const ENTRANCE = 'wayfinding-kiosk-4';
-    new RouteSelector(document.getElementById('selector'), { eventTarget: mapEl, defaultStartId: ENTRANCE });
+    // The kiosk nearest a "main exit" (view.defaultStartNodeId) is where the blue
+    // "you are here" dot starts, and the pre-selected start of any route.
+    new RouteSelector(document.getElementById('selector'), { eventTarget: mapEl });
     new RouteControls(document.getElementById('player'), { eventTarget: mapEl });
     // The card grows/shrinks when a route is set or cleared; keep the map framed around it.
     mapEl.addEventListener('wayfinding:route-cleared', () => view.refreshInsets());
     window.addEventListener('resize', () => view.refreshInsets());
 
-    // Sample data copied from docs/building_data/floors/2/1 (building "Mujamma-proper",
-    // its floor2) — see docs/MAP_DATA_STORAGE.md for the on-disk layout this mirrors.
-    view.loadFloor('./data/floors/2/0/').then(() => view.setUserNode(ENTRANCE)).catch((err) => {
-      console.error(err);
-      mapEl.insertAdjacentHTML('beforeend', `<p style="position:absolute;color:#fff;padding:20px">Failed to load floor data: ${err.message}</p>`);
+    // The two sample floors (see docs/MAP_DATA_STORAGE.md for the on-disk layout this mirrors).
+    const FLOORS = [
+      { name: 'Floor 1', url: './data/floors/2/0/' },
+      { name: 'Floor 2', url: './data/floors/2/1/' },
+    ];
+    const switchEl = document.getElementById('floor-switch');
+    const titleEl = document.getElementById('floor-title');
+    let loadToken = 0;
+    async function showFloor(index) {
+      const token = ++loadToken; // a slow earlier load must not overwrite a newer pick
+      [...switchEl.children].forEach((b, i) => b.classList.toggle('is-active', i === index));
+      titleEl.textContent = FLOORS[index].name;
+      try {
+        await view.loadFloor(FLOORS[index].url);
+        if (token !== loadToken) return;
+        if (view.defaultStartNodeId) view.setUserNode(view.defaultStartNodeId);
+        view.refreshInsets();
+      } catch (err) {
+        console.error(err);
+        mapEl.insertAdjacentHTML('beforeend', `<p style="position:absolute;color:#fff;padding:20px">Failed to load floor data: ${err.message}</p>`);
+      }
+    }
+    FLOORS.forEach((floor, i) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = floor.name;
+      btn.addEventListener('click', () => showFloor(i));
+      switchEl.appendChild(btn);
     });
+    showFloor(0);
 
     const hint = document.getElementById('hint');
     const hideHint = () => hint.classList.add('is-hidden');

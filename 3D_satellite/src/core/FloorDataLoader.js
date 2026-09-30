@@ -1,3 +1,6 @@
+import { resolveRoomProfile } from './roomProfiles.js';
+import { DEFAULT_START } from './constants.js';
+
 async function fetchJson(url) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status} ${res.statusText}`);
@@ -34,14 +37,20 @@ export function buildRouteNodes(floorData) {
     for (const item of items) flatObjects.push({ className, label: item.label || null });
   }
 
-  return (graph.nodes || []).map((node) => {
+  const nodes = [];
+  for (const node of graph.nodes || []) {
     let label = node.id;
     let category = null;
+    let profile = null;
     if (node.class === 'room') {
       const roomId = node.id.replace(/^room-/, '');
       const room = roomsById.get(roomId);
-      label = room?.name || 'Room';
-      category = room?.category || null;
+      // graph.json can lag behind boundary.json — boundary.json's own
+      // `navigable` flag is the authority on what is a place.
+      if (!room || !room.navigable) continue;
+      label = room.name || 'Room';
+      category = room.category || null;
+      profile = resolveRoomProfile(room);
     } else {
       const match = node.id.match(/^(.+)-(\d+)$/);
       if (match) {
@@ -52,24 +61,17 @@ export function buildRouteNodes(floorData) {
         label = flatLabel || objectLabelsByClass[className]?.[index] || `${className} ${index + 1}`;
       }
     }
-    return {
+    nodes.push({
       id: node.id,
       class: node.class,
       label,
       category,
+      profile,
       centroidPx: node.centroid_px,
       reachable: node.reachable !== false,
-    };
-  });
-}
-
-// Unclassified rooms the editor never got a real name for keep its
-// auto-generated placeholder ("Room 7"). Neither showing that on the map nor
-// offering it as a searchable destination is useful, so both the label layer
-// and the route selector skip anything named like that — regardless of its
-// category, since a placeholder name can carry any category or none at all.
-export function isGenericRoomLabel(label) {
-  return typeof label === 'string' && label.startsWith('Room');
+    });
+  }
+  return nodes;
 }
 
 // paths.json stores one entry per unordered reachable pair; index both
@@ -131,4 +133,27 @@ export function resolveNearestByLabel(nodes, pathIndex, fromId, targetId) {
     }
   }
   return best;
+}
+
+// The default start: of all kiosk nodes, the one closest to a "main exit" (see
+// DEFAULT_START). Closeness is the routed distance when paths.json has one,
+// else straight-line. Returns null if the floor has no kiosk or no such exit.
+export function pickDefaultStartNode(nodes, pathIndex) {
+  const kiosks = nodes.filter((n) => n.class !== 'room' && DEFAULT_START.nodeClass.test(n.class));
+  const exits = nodes.filter((n) => n.class === 'exits' && DEFAULT_START.exitLabel.test(n.label || ''));
+  let best = null;
+  let bestDistance = Infinity;
+  for (const kiosk of kiosks) {
+    for (const exit of exits) {
+      const route = findRoute(pathIndex, kiosk.id, exit.id);
+      const [kx, ky] = kiosk.centroidPx || [0, 0];
+      const [ex, ey] = exit.centroidPx || [0, 0];
+      const d = route ? route.distance : Math.hypot(kx - ex, ky - ey) * 1e6; // unrouted loses to any routed pair
+      if (d < bestDistance) {
+        best = kiosk;
+        bestDistance = d;
+      }
+    }
+  }
+  return best ? best.id : null;
 }
