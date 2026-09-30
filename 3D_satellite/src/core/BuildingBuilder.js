@@ -462,6 +462,7 @@ export function buildBuilding(floorDoc, projector, pointObjects = floorDoc.objec
   if (wallGeometry) {
     wallMesh = new THREE.Mesh(wallGeometry, wallMaterial);
     wallMesh.name = 'boundary-walls';
+    wallMesh.userData = { ring: boundary, baseY: BASE_HEIGHT, topY: BASE_HEIGHT + WALL_HEIGHT }; // for cheap label occlusion (core/screen.js)
     wallMesh.position.y = BASE_HEIGHT;
     wallMesh.castShadow = true;
     wallMesh.receiveShadow = true;

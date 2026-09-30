@@ -21,9 +21,11 @@ export const SATELLITE_STYLE = `
 .sat-label { position: absolute; left: 0; top: 0; pointer-events: none; will-change: transform; }
 .sat-chip {
   display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 13px 0 3px; border-radius: 15px;
-  background: rgba(17, 19, 24, 0.8); border: 1px solid var(--sat-border);
-  -webkit-backdrop-filter: blur(10px) saturate(1.5); backdrop-filter: blur(10px) saturate(1.5);
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  /* No backdrop-filter / big blurred shadow here: with dozens of chips over a
+     canvas that repaints every frame, the GPU re-blurs each chip's backdrop on
+     every frame, which is what made phones crawl. */
+  background: rgba(17, 19, 24, 0.9); border: 1px solid var(--sat-border);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
   color: var(--sat-text); font: 600 12px/1 var(--sat-font); letter-spacing: 0.01em; white-space: nowrap;
   opacity: 0; transform: translateY(5px) scale(0.86); transform-origin: 50% 50%;
   transition: opacity 0.28s ease, transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2), background 0.2s ease, border-color 0.2s ease;
