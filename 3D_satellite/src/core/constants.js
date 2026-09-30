@@ -110,13 +110,7 @@ export const ROOM_PROFILES = {
   },
   [P.ELEVATOR]: {
     label: 'Elevator', icon: 'elevator', tint: '#8fb4ff',
-    // A polished steel-blue body with a permanent glowing outline and a glowing
-    // cap on the roof carrying an up/down-arrow plate (see `roof`).
-    mode: M.BLOCK, fill: 0x8796ad, edge: 0x8fb4ff, height: BLOCK_HEIGHT,
-    metalness: 0.45, roughness: 0.32,
-    roof: { color: 0x3b82f6, inset: 0.45, thickness: 0.28 },
-    // Sliding double door on each of the room's doors: `heightFactor` x the block height.
-    door: { heightFactor: 0.75, panel: 0xd9dee7, frame: 0x1c2029, light: 0x3b82f6 },
+    mode: M.BLOCK, fill: 0x50565f, edge: null, height: BLOCK_HEIGHT,
   },
   [P.UNCLASSIFIED]: {
     label: 'Room', icon: 'box', tint: '#8b94a3',
@@ -201,6 +195,15 @@ export const KIOSK = {
   accentColor: 0x4285f4,
   height: 2.75, // total, used to lift the map label above it
 };
+
+// ---- performance --------------------------------------------------------
+// Low-power rendering: pixel ratio capped at LOW_POWER_PIXEL_RATIO and a smaller
+// shadow map. true = always on, false = always off, 'auto' = on for touch devices.
+export const LOW_POWER = 'off';
+export const LOW_POWER_PIXEL_RATIO = 1.5;
+export const NORMAL_PIXEL_RATIO = 2;
+export const LOW_POWER_SHADOW_SIZE = 2048;
+export const NORMAL_SHADOW_SIZE = 4096;
 
 // ---- camera ---------------------------------------------------------
 export const CAMERA_FOV = 32;

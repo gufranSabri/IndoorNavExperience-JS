@@ -1,65 +1,6 @@
 import * as THREE from '../vendor/three.module.js';
 import { KIOSK } from './constants.js';
 
-// The glowing wayfinding UI painted on the kiosk's display.
-function makeScreenTexture() {
-  const w = 640;
-  const h = 420;
-  const canvas = document.createElement('canvas');
-  canvas.width = w;
-  canvas.height = h;
-  const g = canvas.getContext('2d');
-
-  const bg = g.createLinearGradient(0, 0, w, h);
-  bg.addColorStop(0, '#16233f');
-  bg.addColorStop(1, '#0b1224');
-  g.fillStyle = bg;
-  g.fillRect(0, 0, w, h);
-
-  // soft "map" grid
-  g.strokeStyle = 'rgba(138,180,248,0.12)';
-  g.lineWidth = 2;
-  for (let x = 0; x <= w; x += 64) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); }
-  for (let y = 0; y <= h; y += 64) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
-
-  // route line ending in a pin
-  g.strokeStyle = '#4285f4';
-  g.lineWidth = 12;
-  g.lineCap = 'round';
-  g.lineJoin = 'round';
-  g.beginPath();
-  g.moveTo(70, 340); g.lineTo(200, 340); g.lineTo(200, 250); g.lineTo(400, 250); g.lineTo(400, 190);
-  g.stroke();
-  g.fillStyle = '#ea4335';
-  g.beginPath(); g.arc(400, 160, 26, Math.PI, 0); g.lineTo(400, 214); g.closePath(); g.fill();
-  g.fillStyle = '#fff';
-  g.beginPath(); g.arc(400, 160, 10, 0, Math.PI * 2); g.fill();
-  // you-are-here dot
-  g.fillStyle = 'rgba(66,133,244,0.3)';
-  g.beginPath(); g.arc(70, 340, 30, 0, Math.PI * 2); g.fill();
-  g.fillStyle = '#4285f4'; g.strokeStyle = '#fff'; g.lineWidth = 6;
-  g.beginPath(); g.arc(70, 340, 15, 0, Math.PI * 2); g.fill(); g.stroke();
-
-  // header bar + title
-  g.fillStyle = 'rgba(255,255,255,0.08)';
-  g.fillRect(0, 0, w, 92);
-  g.fillStyle = '#eef1f5';
-  g.font = '700 44px system-ui, -apple-system, Segoe UI, sans-serif';
-  g.textBaseline = 'middle';
-  g.fillText('Find your way', 34, 48);
-  g.fillStyle = '#8ab4f8';
-  g.font = '600 26px system-ui, -apple-system, Segoe UI, sans-serif';
-  g.textAlign = 'right';
-  g.fillText('Touch to start', w - 34, 48);
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = 4;
-  return texture;
-}
-
-let sharedScreen = null;
-
 // A freestanding wayfinding kiosk, ~KIOSK.height tall. Built facing local +z
 // (the screen's direction), standing on y = 0 — the caller positions and turns it.
 export function buildKiosk() {
@@ -103,10 +44,9 @@ export function buildKiosk() {
   bezel.position.z = k.headDepth / 2 + 0.005;
   head.add(bezel);
 
-  sharedScreen ||= makeScreenTexture();
   const display = new THREE.Mesh(
     new THREE.PlaneGeometry(k.width - 0.3, k.screenHeight - 0.3),
-    new THREE.MeshBasicMaterial({ map: sharedScreen, toneMapped: false })
+    new THREE.MeshBasicMaterial({ color: 0x000000 })
   );
   display.position.z = k.headDepth / 2 + 0.02;
   head.add(display);

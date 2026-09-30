@@ -23,6 +23,11 @@ import {
   PLAYBACK_MPS,
   WALK_MPS,
   GLASS_OPACITY,
+  LOW_POWER,
+  LOW_POWER_PIXEL_RATIO,
+  NORMAL_PIXEL_RATIO,
+  LOW_POWER_SHADOW_SIZE,
+  NORMAL_SHADOW_SIZE,
 } from './core/constants.js';
 import {
   ROUTE_CHANGE_EVENT,
@@ -82,7 +87,11 @@ export class SatelliteView {
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
     this.renderer.setClearColor(0x000000, 0);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    // Phones (coarse pointer) get a lower pixel-ratio cap and a smaller shadow map: the
+    // scene is re-drawn every frame, and fill-rate is what a phone GPU runs out of first.
+    const lowPowerSetting = options.lowPower ?? LOW_POWER;
+    this.lowPower = lowPowerSetting === 'auto' ? !!window.matchMedia?.('(pointer: coarse)').matches : !!lowPowerSetting;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.lowPower ? LOW_POWER_PIXEL_RATIO : NORMAL_PIXEL_RATIO));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.shadowMap.autoUpdate = false; // the model is static; re-render shadows only on change
@@ -176,11 +185,25 @@ export class SatelliteView {
 
     this.sun = new THREE.DirectionalLight(0xfff6ea, 2.2);
     this.sun.castShadow = true;
-    this.sun.shadow.mapSize.set(4096, 4096);
+    const shadowSize = this.lowPower ? LOW_POWER_SHADOW_SIZE : NORMAL_SHADOW_SIZE;
+    this.sun.shadow.mapSize.set(shadowSize, shadowSize);
     this.sun.shadow.bias = -0.0004;
     this.sun.shadow.normalBias = 0.05;
     this.sun.shadow.radius = 3;
     this.scene.add(this.sun, this.sun.target);
+  }
+
+  /** Toggles the phone-friendly mode: see LOW_POWER in constants.js. */
+  setLowPower(on) {
+    this.lowPower = !!on;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.lowPower ? LOW_POWER_PIXEL_RATIO : NORMAL_PIXEL_RATIO));
+    const size = this.lowPower ? LOW_POWER_SHADOW_SIZE : NORMAL_SHADOW_SIZE;
+    this.sun.shadow.mapSize.set(size, size);
+    this.sun.shadow.map?.dispose();
+    this.sun.shadow.map = null; // rebuilt at the new size on the next shadow pass
+    this._resize();
+    this._shadowDirty = true;
+    this._cameraDirty = true;
   }
 
   _fitSunToBuilding(box) {
