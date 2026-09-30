@@ -197,13 +197,15 @@ export const KIOSK = {
 };
 
 // ---- performance --------------------------------------------------------
-// Low-power rendering: pixel ratio capped at LOW_POWER_PIXEL_RATIO and a smaller
-// shadow map. true = always on, false = always off, 'auto' = on for touch devices.
-export const LOW_POWER = 'off';
+// Render quality: 'auto' picks a tier from the device (see core/perf.js) and steps
+// down if the frame rate is poor. Or force one: 'high' | 'low' | 'minimal'.
+// The page can override with ?quality=low.
+export const QUALITY = 'auto';
 export const LOW_POWER_PIXEL_RATIO = 1.5;
 export const NORMAL_PIXEL_RATIO = 2;
 export const LOW_POWER_SHADOW_SIZE = 2048;
 export const NORMAL_SHADOW_SIZE = 4096;
+export const MINIMAL_PIXEL_RATIO = 1;
 
 // ---- camera ---------------------------------------------------------
 export const CAMERA_FOV = 32;

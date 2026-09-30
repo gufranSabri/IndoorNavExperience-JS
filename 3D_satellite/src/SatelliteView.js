@@ -9,6 +9,7 @@ import { LabelLayer } from './ui/LabelLayer.js';
 import { UserMarker, DestinationPin } from './ui/Markers.js';
 import { MapControlsUI } from './ui/MapControlsUI.js';
 import { ensureSatelliteStyle } from './ui/styles.js';
+import { TIERS, detectStartingTier, FrameMonitor } from './core/perf.js';
 import {
   BASE_HEIGHT,
   WALL_HEIGHT,
@@ -23,11 +24,12 @@ import {
   PLAYBACK_MPS,
   WALK_MPS,
   GLASS_OPACITY,
-  LOW_POWER,
+  QUALITY,
   LOW_POWER_PIXEL_RATIO,
   NORMAL_PIXEL_RATIO,
   LOW_POWER_SHADOW_SIZE,
   NORMAL_SHADOW_SIZE,
+  MINIMAL_PIXEL_RATIO,
 } from './core/constants.js';
 import {
   ROUTE_CHANGE_EVENT,
@@ -85,13 +87,36 @@ export class SatelliteView {
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(CAMERA_FOV, 1, 1, 1000);
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+    // MSAA is fixed at context creation, so skip it on phones with dense screens, where
+    // it costs the most and shows the least.
+    const coarse = !!window.matchMedia?.('(pointer: coarse)').matches;
+    const antialias = !(coarse && (window.devicePixelRatio || 1) >= 2);
+    this.renderer = new THREE.WebGLRenderer({ antialias, alpha: true, powerPreference: 'high-performance' });
     this.renderer.setClearColor(0x000000, 0);
-    // Phones (coarse pointer) get a lower pixel-ratio cap and a smaller shadow map: the
-    // scene is re-drawn every frame, and fill-rate is what a phone GPU runs out of first.
-    const lowPowerSetting = options.lowPower ?? LOW_POWER;
-    this.lowPower = lowPowerSetting === 'auto' ? !!window.matchMedia?.('(pointer: coarse)').matches : !!lowPowerSetting;
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.lowPower ? LOW_POWER_PIXEL_RATIO : NORMAL_PIXEL_RATIO));
+    // Quality tier: forced by option / ?quality=, else guessed from the device, then
+    // corrected by FrameMonitor if real frame times are poor.
+    let setting = options.quality ?? new URLSearchParams(location.search).get('quality') ?? QUALITY;
+    if (options.lowPower === true) setting = 'low'; // legacy option
+    this.qualityReasons = [];
+    if (TIERS.includes(setting)) {
+      this.quality = setting;
+      this.qualityReasons.push('forced');
+    } else {
+      const guess = detectStartingTier(this.renderer.getContext());
+      this.quality = guess.tier;
+      this.qualityReasons = guess.reasons;
+    }
+    this.frameMonitor = new FrameMonitor({
+      onSlow: (fps) => {
+        const next = TIERS[TIERS.indexOf(this.quality) + 1];
+        if (!next) return this.frameMonitor.enabled = false;
+        console.info(`[satellite] ${fps.toFixed(0)}fps, dropping quality ${this.quality} -> ${next}`);
+        this.setQuality(next);
+      },
+    });
+    this.frameMonitor.enabled = !TIERS.includes(setting); // a forced tier stays put
+    console.info(`[satellite] quality=${this.quality}${this.qualityReasons.length ? ` (${this.qualityReasons.join(', ')})` : ''}`);
+    this.renderer.setPixelRatio(this._pixelRatioFor(this.quality));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.shadowMap.autoUpdate = false; // the model is static; re-render shadows only on change
@@ -185,25 +210,46 @@ export class SatelliteView {
 
     this.sun = new THREE.DirectionalLight(0xfff6ea, 2.2);
     this.sun.castShadow = true;
-    const shadowSize = this.lowPower ? LOW_POWER_SHADOW_SIZE : NORMAL_SHADOW_SIZE;
+    const shadowSize = this.quality === 'high' ? NORMAL_SHADOW_SIZE : LOW_POWER_SHADOW_SIZE;
     this.sun.shadow.mapSize.set(shadowSize, shadowSize);
+    this.sun.castShadow = this.quality !== 'minimal';
     this.sun.shadow.bias = -0.0004;
     this.sun.shadow.normalBias = 0.05;
     this.sun.shadow.radius = 3;
     this.scene.add(this.sun, this.sun.target);
   }
 
-  /** Toggles the phone-friendly mode: see LOW_POWER in constants.js. */
-  setLowPower(on) {
-    this.lowPower = !!on;
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.lowPower ? LOW_POWER_PIXEL_RATIO : NORMAL_PIXEL_RATIO));
-    const size = this.lowPower ? LOW_POWER_SHADOW_SIZE : NORMAL_SHADOW_SIZE;
+  _pixelRatioFor(tier) {
+    const dpr = window.devicePixelRatio || 1;
+    const cap = tier === 'high' ? NORMAL_PIXEL_RATIO : tier === 'low' ? LOW_POWER_PIXEL_RATIO : MINIMAL_PIXEL_RATIO;
+    return Math.min(dpr, cap);
+  }
+
+  /** Switches quality tier ('high' | 'low' | 'minimal'): see core/perf.js. */
+  setQuality(tier) {
+    if (!TIERS.includes(tier)) return;
+    this.quality = tier;
+    this.renderer.setPixelRatio(this._pixelRatioFor(tier));
+    const size = tier === 'high' ? NORMAL_SHADOW_SIZE : LOW_POWER_SHADOW_SIZE;
     this.sun.shadow.mapSize.set(size, size);
     this.sun.shadow.map?.dispose();
     this.sun.shadow.map = null; // rebuilt at the new size on the next shadow pass
+    this.sun.castShadow = tier !== 'minimal';
     this._resize();
     this._shadowDirty = true;
     this._cameraDirty = true;
+    this.frameMonitor?.restart();
+  }
+
+  /** Back-compat: true = 'low', false = 'high'. */
+  setLowPower(on) {
+    this.setQuality(on ? 'low' : 'high');
+  }
+
+  /** Current tier, live fps estimate, and GPU load, for debugging on a device. */
+  getPerfStats() {
+    const { calls, triangles } = this.renderer.info.render;
+    return { quality: this.quality, reasons: this.qualityReasons, fps: this.frameMonitor.fps, drawCalls: calls, triangles, geometries: this.renderer.info.memory.geometries, textures: this.renderer.info.memory.textures };
   }
 
   _fitSunToBuilding(box) {
@@ -316,7 +362,7 @@ export class SatelliteView {
   }
 
   // The first frame after loading: start from a distant top-down view and
-  // ease into the tilted overview — close enough that room labels are
+  // ease into the 2D (top-down) overview — close enough that room labels are
   // already on by the time it settles (INTRO_ZOOM_DISTANCE_FACTOR sits
   // inside the LABEL_ZOOM_DISTANCE_FACTOR reveal threshold).
   _maybeIntro() {
@@ -326,7 +372,7 @@ export class SatelliteView {
     const c = this.fitCenter;
     this.controls.set({ x: c.x, z: c.z, distance: this.fitDistance * 1.55, pitch: 0, bearing: -18 * DEG });
     this.controls.flyTo(
-      { x: c.x, z: c.z, distance: this.fitDistance * INTRO_ZOOM_DISTANCE_FACTOR, pitch: CAMERA_DEFAULT_PITCH * DEG, bearing: this._startBearing || 0 },
+      { x: c.x, z: c.z, distance: this.fitDistance * INTRO_ZOOM_DISTANCE_FACTOR, pitch: 0, bearing: this._startBearing || 0 },
       2.4
     );
   }
@@ -354,7 +400,7 @@ export class SatelliteView {
     if (this.route && this.routeRenderer.hasRoute) this._fitRoute();
     else {
       this.controls.flyTo(
-        { x: this.fitCenter.x, z: this.fitCenter.z, distance: this.fitDistance, pitch: CAMERA_DEFAULT_PITCH * DEG, bearing: 0 },
+        { x: this.fitCenter.x, z: this.fitCenter.z, distance: this.fitDistance, pitch: 0, bearing: 0 },
         1.2
       );
     }
@@ -759,7 +805,9 @@ export class SatelliteView {
   }
 
   _tick() {
-    const dt = Math.min(this._clock.getDelta(), 0.1);
+    const rawDt = this._clock.getDelta();
+    const dt = Math.min(rawDt, 0.1);
+    if (this.building) this.frameMonitor.tick(rawDt);
 
     this.controls.update(dt);
     this._stepPlayback(dt);
