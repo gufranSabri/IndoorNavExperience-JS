@@ -137,13 +137,14 @@ function buildWallGeometry(boundary, doors) {
 // ---- rooms -----------------------------------------------------------
 
 // Fill color + permanent outline for a room's box, by category:
-// toilets pink, meeting rooms purple, a named closed office the same blue a
+// toilets pink, meeting rooms purple, concessions amber, a named closed office the same blue a
 // click used to give it (now baked in, since clicking no longer changes the
 // look), everything else (a still-"Room N" closed office, elevator, other,
 // non_traversable...) the plain gray default box.
 function resolveRoomLook(category, name) {
   if (category === 'toilet') return { color: new THREE.Color(ROOM_CATEGORY_COLOR.toilet), outline: false };
   if (category === 'meeting_room') return { color: new THREE.Color(ROOM_CATEGORY_COLOR.meeting_room), outline: false };
+  if (category === 'concession') return { color: new THREE.Color(ROOM_CATEGORY_COLOR.concession), outline: false };
   if (category === 'closed_office' && !isGenericRoomLabel(name)) {
     return {
       color: new THREE.Color(COLORS.room).lerp(new THREE.Color(COLORS.accent), CLOSED_OFFICE_TINT),

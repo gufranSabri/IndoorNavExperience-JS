@@ -140,7 +140,7 @@
 
     // Sample data copied from docs/building_data/floors/2/1 (building "Mujamma-proper",
     // its floor2) — see docs/MAP_DATA_STORAGE.md for the on-disk layout this mirrors.
-    view.loadFloor('./data/floors/2/1/').then(() => view.setUserNode(ENTRANCE)).catch((err) => {
+    view.loadFloor('./data/floors/2/0/').then(() => view.setUserNode(ENTRANCE)).catch((err) => {
       console.error(err);
       mapEl.insertAdjacentHTML('beforeend', `<p style="position:absolute;color:#fff;padding:20px">Failed to load floor data: ${err.message}</p>`);
     });

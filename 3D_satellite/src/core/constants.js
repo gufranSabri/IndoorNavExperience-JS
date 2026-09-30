@@ -31,6 +31,7 @@ export const CATEGORY_STYLE = {
   open_office: { label: 'Open office', color: '#4fd1a5', icon: 'users' },
   sub_open_office: { label: 'Open office', color: '#4fd1a5', icon: 'users' },
   meeting_room: { label: 'Meeting room', color: '#b391ff', icon: 'presentation' },
+  concession: { label: 'Concession', color: '#f472b6', icon: 'store' },
   toilet: { label: 'Restroom', color: '#ffb454', icon: 'toilet' },
   elevator: { label: 'Elevator', color: '#8fb4ff', icon: 'elevator' },
   other: { label: 'Room', color: '#9aa4b2', icon: 'box' },
@@ -43,6 +44,7 @@ export const CATEGORY_STYLE = {
 export const ROOM_CATEGORY_COLOR = {
   toilet: 0x744e5c, // dusty, faded rose — not neon pink
   meeting_room: 0x57476b, // dusty, faded plum — not neon purple
+  concession: 0x6b5a3a, // muted amber-brown — not neon orange
 };
 // A named closed office is blended this far toward COLORS.accent (the same
 // blue used to look "selected"), and carries a permanent edge outline.
