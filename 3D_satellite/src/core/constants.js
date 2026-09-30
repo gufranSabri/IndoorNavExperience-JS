@@ -217,5 +217,5 @@ export const ROUTE_MIN_PX = 10; // ...but never thinner / thicker than this on s
 export const ROUTE_MAX_PX = 22;
 export const ROUTE_CORNER_RADIUS = 3.4; // meters, fillet on every turn
 export const ROUTE_DRAW_MPS = 38; // draw-on animation speed
-export const PLAYBACK_MPS = 4.5; // preview walking speed
+export const PLAYBACK_MPS = 3.0; // preview walking speed
 export const WALK_MPS = 1.3; // real walking speed used for the time estimate
