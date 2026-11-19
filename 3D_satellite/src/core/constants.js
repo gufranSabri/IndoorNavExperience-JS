@@ -7,8 +7,8 @@ export const BASE_HEIGHT = 0.6; // meters, the plinth the building sits on
 export const BASE_MARGIN = 1.7; // meters the plinth extends past the outer wall
 export const WALL_HEIGHT = 5.2; // meters, boundary walls
 export const WALL_THICKNESS = 0.62;
-export const WALL_CORNER_RADIUS = 1.7; // meters, rounding of the boundary wall's corners
-export const ROOM_CORNER_RADIUS = 0.55; // meters, rounding of every room's corners
+export const WALL_CORNER_RADIUS = 1.0; // meters, rounding of the boundary wall's corners
+export const ROOM_CORNER_RADIUS = 0.35; // meters, rounding of every room's corners
 export const VOID_CORNER_RADIUS = 0.7; // meters, rounding of the stairwell opening
 export const ROOM_HEIGHT = 4.1; // meters, "slightly shorter" than the walls
 export const ROOM_GAP = 0.26; // meters of empty space between neighbouring rooms
@@ -126,12 +126,15 @@ export const ROOM_RULES = [
   { category: 'floor_space', has: ['render', 'private'], profile: P.FLOOR_PRIVATE },
   { category: 'floor_space', has: ['render'], profile: P.FLOOR_PUBLIC },
   { category: 'floor_space', profile: P.FLOOR_HIDDEN },
-  { category: 'work_space', has: ['private'], profile: P.WORK_PRIVATE },
+  // work_space attributes are independent checkboxes (private / closed / meeting_room),
+  // so combinations occur: meeting_room is the most specific and wins over private/closed.
   { category: 'work_space', has: ['meeting_room'], profile: P.WORK_MEETING },
+  { category: 'work_space', has: ['private'], profile: P.WORK_PRIVATE },
   { category: 'work_space', has: ['closed'], profile: P.WORK_CLOSED },
   { category: 'work_space', profile: P.WORK_OPEN },
   { category: 'amenities', has: ['toilet'], profile: P.TOILET },
   { category: 'amenities', has: ['food_beverage'], profile: P.FOOD_BEVERAGE },
+  { category: 'amenities', has: ['other'], profile: P.AMENITY },
   { category: 'amenities', profile: P.AMENITY },
   { category: 'elevator', profile: P.ELEVATOR },
 ];

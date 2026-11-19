@@ -16,6 +16,7 @@ export function mergeGeometries(geometries) {
   const positions = [];
   const normals = [];
   const uvs = [];
+  const colors = [];
   const indices = [];
   let vertexOffset = 0;
 
@@ -23,11 +24,13 @@ export function mergeGeometries(geometries) {
     const position = geometry.attributes.position;
     const normal = geometry.attributes.normal;
     const uv = geometry.attributes.uv;
+    const color = geometry.attributes.color;
 
     for (let i = 0; i < position.count; i++) {
       positions.push(position.getX(i), position.getY(i), position.getZ(i));
       if (normal) normals.push(normal.getX(i), normal.getY(i), normal.getZ(i));
       if (uv) uvs.push(uv.getX(i), uv.getY(i));
+      if (color) colors.push(color.getX(i), color.getY(i), color.getZ(i));
     }
 
     if (geometry.index) {
@@ -44,6 +47,7 @@ export function mergeGeometries(geometries) {
   merged.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
   if (normals.length) merged.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
   if (uvs.length) merged.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  if (colors.length) merged.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
   merged.setIndex(indices);
   return merged;
 }

@@ -55,17 +55,30 @@ function distanceToRefs(p, refPolys, exits) {
 // runs on to the next order's segment, so the edge nearest an exit / a
 // lower-order segment is always a flight's "near" (floor-level) edge.
 //
-// On every floor but the lowest, a zone's stairs descend from the floor into
-// a shaft dug into the base (there being a real floor below to reveal). On
-// the lowest floor there is nothing below, so the same zone instead climbs
-// *up* from the floor with no shaft at all — `isLowestFloor` is the one
-// switch between the two.
+// Each zone's own `direction` decides which way its stairs go: "below" (the
+// floor beneath shows through) descends from the floor into a shaft dug into
+// the base; "above" climbs up from the floor with no shaft at all.
 //
 // Returns the geometry group, a `heightAt(x, z)` giving the walkable surface
 // height at any point (so a route/user dot can follow the stairs), and
 // `zoneDepths` — the lowest y each descending zone reaches, keyed by
 // `exclusion_area_id`, so the caller can size that zone's stairwell shaft.
-export function buildStairs(floorScope, projector, { floorY, isLowestFloor = false } = {}) {
+// Resolves each exclusion zone's direction ("below" | "above") by area id.
+// Files still carrying the legacy floor-wide `is_lowest_floor` (no per-area
+// `direction`) are upgraded the way the editor does on load: true -> every
+// area "above", otherwise "below".
+export function zoneDirections(floorScope) {
+  const fallback = floorScope?.is_lowest_floor ? 'above' : 'below';
+  const map = new Map();
+  for (const area of floorScope?.exclusion_areas || []) {
+    map.set(area.id, area.direction === 'above' || area.direction === 'below' ? area.direction : fallback);
+  }
+  map.fallback = fallback;
+  return map;
+}
+
+export function buildStairs(floorScope, projector, { floorY } = {}) {
+  const directions = zoneDirections(floorScope);
   const allExits = (floorScope?.exclusion_exits || []).map((e) => ({
     areaId: e.exclusion_area_id ?? null,
     a: projector.toWorldArr(e.start),
@@ -87,12 +100,13 @@ export function buildStairs(floorScope, projector, { floorY, isLowestFloor = fal
     return { group, heightAt: () => floorY, zoneDepths: new Map(), hasStairs: false };
   }
 
-  const direction = isLowestFloor ? 1 : -1; // +1 climbs above the floor, -1 descends below it
   const zoneIds = [...new Set(allSegments.map((s) => s.areaId))];
   const zoneDepths = new Map(); // areaId -> lowest y reached (descending zones only)
-  const pieces = [];
+  const pieces = []; // { geometry, above }
 
   for (const zoneId of zoneIds) {
+    const above = (directions.get(zoneId) ?? directions.fallback) === 'above';
+    const direction = above ? 1 : -1; // +1 climbs above the floor, -1 descends below it
     const segments = allSegments.filter((s) => s.areaId === zoneId);
     const exits = allExits.filter((e) => e.areaId === zoneId);
 
@@ -141,15 +155,15 @@ export function buildStairs(floorScope, projector, { floorY, isLowestFloor = fal
     // the bottom of its shaft when descending, or just the floor when
     // climbing — and extrudes up from it to its own tread height, so a
     // step's riser is exposed above the next one down.
-    const zoneBaseY = isLowestFloor ? floorY : floorY + level;
-    if (!isLowestFloor) zoneDepths.set(zoneId, zoneBaseY);
+    const zoneBaseY = above ? floorY : floorY + level;
+    if (!above) zoneDepths.set(zoneId, zoneBaseY);
 
     const solid = (poly, topY) => {
       const height = topY - zoneBaseY;
       if (poly.length < 3 || height < 0.05) return;
       const geometry = extrude(makeShape(poly), height, 0.02);
       geometry.translate(0, zoneBaseY, 0);
-      pieces.push(geometry);
+      pieces.push({ geometry, above });
     };
     for (const s of segments) {
       if (s.kind === 'landing') {
@@ -164,30 +178,29 @@ export function buildStairs(floorScope, projector, { floorY, isLowestFloor = fal
     }
   }
 
-  const merged = pieces.length ? mergeGeometries(pieces) : null;
-  if (merged) {
-    let material;
-    if (isLowestFloor) {
-      // Climbing into open air, lit like everything else — no pit to fake AO for.
-      material = new THREE.MeshStandardMaterial({ color: STAIR_LIGHT, roughness: 0.62, metalness: 0.06 });
-    } else {
-      // Fade the stone from light at the top of the stairs to black at the
-      // bottom of the deepest shaft on this floor — a cheap ambient-occlusion
-      // look that gives the depth. Shallower zones simply never reach full black.
-      const deepest = Math.min(floorY + DEFAULT_VOID_DEPTH, ...zoneDepths.values());
-      const position = merged.attributes.position;
+  if (pieces.length) {
+    // Descending stairs fade from light stone at the top to black at the
+    // bottom of the deepest shaft on this floor — a cheap ambient-occlusion
+    // look that gives the depth. Climbing stairs stay plain light stone.
+    const deepest = Math.min(floorY + DEFAULT_VOID_DEPTH, ...zoneDepths.values());
+    const light = new THREE.Color(STAIR_LIGHT);
+    const dark = new THREE.Color(STAIR_DARK);
+    const mix = new THREE.Color();
+    for (const { geometry, above } of pieces) {
+      const position = geometry.attributes.position;
       const colors = new Float32Array(position.count * 3);
-      const light = new THREE.Color(STAIR_LIGHT);
-      const dark = new THREE.Color(STAIR_DARK);
-      const mix = new THREE.Color();
       for (let i = 0; i < position.count; i++) {
-        const t = clamp01((position.getY(i) - deepest) / (floorY - deepest || 1));
-        mix.copy(dark).lerp(light, Math.pow(t, 1.15));
+        if (above) mix.copy(light);
+        else {
+          const t = clamp01((position.getY(i) - deepest) / (floorY - deepest || 1));
+          mix.copy(dark).lerp(light, Math.pow(t, 1.15));
+        }
         colors.set([mix.r, mix.g, mix.b], i * 3);
       }
-      merged.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-      material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.62, metalness: 0.06 });
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     }
+    const merged = mergeGeometries(pieces.map((p) => p.geometry));
+    const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.62, metalness: 0.06 });
     const mesh = new THREE.Mesh(merged, material);
     mesh.name = 'stair-steps';
     mesh.castShadow = true;

@@ -39,8 +39,8 @@ host can lay its own data out however it likes.
 | Rooms | Each room's `category` + `attributes` pick a profile (`ROOM_RULES` → `ROOM_PROFILES` in constants.js) that sets its look: a solid block (private / closed / meeting work spaces, amenities, elevator), a permanent translucent glass box (open work space; `floor_space` with `render`: gray w/ white edges if `private`, pastel green w/ green edges otherwise), or nothing (`floor_space` without `render`) |
 | Internal walls | Not drawn. Each room is inset by half of `ROOM_GAP`, so two rooms sharing a wall end up a thin gap apart |
 | Open space | Not drawn — the base shows through (the whole-floor `floor-space` room is always skipped; `floor_space` rooms without `render` build nothing) |
-| Exclusion zone | On any floor but the lowest, the floor is cut open there: a black stairwell shaft going down. On the lowest floor (`is_lowest_floor`) there is nothing below to reveal, so instead the same zone's stairs simply climb up out of solid ground — no hole at all |
-| Stairs | The floor-scope stair flights and landings, built as real steps — descending *below* the floor into a shaft on every other floor, fading from light stone to black with depth, or climbing *above* solid ground on the lowest floor |
+| Exclusion zone | Per zone, by its `direction`: `"below"` cuts the floor open there — a black stairwell shaft going down. `"above"` has nothing below to reveal, so the zone's stairs simply climb up out of solid ground — no hole at all |
+| Stairs | The floor-scope stair flights and landings, built as real steps — descending *below* the floor into a shaft (zone `direction: "below"`), fading from light stone to black with depth, or climbing *above* solid ground (`"above"`) |
 | Labels | Category icon + name at each room's visual center, shown only once zoomed in (see below). Labelled and searchable exactly when the room's `navigable` flag is true; icon/color come from its profile (meeting room, toilet, food & beverage, lobby... each have their own) |
 | Route | Thick blue ribbon with a border and glow, drawn on with an animation, white chevrons flowing along it; the walked part greys out. It follows stairs up/down via the same `heightAt(x, z)` the stairs report |
 | You are here | Blue dot, white ring, pulsing halo and a heading beam — a DOM element, so it stays crisp at any zoom |
@@ -49,18 +49,20 @@ host can lay its own data out however it likes.
 Rooms the route passes through (and the start / destination rooms) turn into
 outlined glass so the line stays visible inside them.
 
-### Stairs & `is_lowest_floor`
+### Stairs & zone `direction`
 
 Segments in `floor_scope.segments` are stair flights and landings, scoped to
 one `exclusion_area_id` — a floor can have several independent stair cores,
 each numbering its own `order` sequence from 1 (§5). A flight's near edge is
 whichever one touches that zone's own exclusion exit or an earlier-order
 segment; its steps run away from that edge, and flights sharing an order move
-together. `floor_scope.is_lowest_floor` (a plain toggle on the Floor Scope
-page) flips every zone on the floor between the two directions: normally a
-zone's stairs descend into a shaft dug into the base (there being a real floor
-below to reveal); on the lowest floor there's nothing below, so the same zone's
-stairs instead climb *up* from solid ground and no shaft is cut at all.
+together. Each exclusion area's own `direction` (`"below"` / `"above"`, set on
+the Floor Scope page) decides which way the stairs anchored to it go: `"below"`
+descends into a shaft dug into the base (a real floor below is revealed);
+`"above"` climbs *up* from solid ground and no shaft is cut. Zones on one
+floor can differ. Older files that still carry the legacy floor-wide
+`is_lowest_floor` (and no per-area `direction`) are read as the editor
+migrates them: `true` → every zone `"above"`, otherwise `"below"`.
 `heightAt(x, z)` reports the walking surface either way, so the route ribbon,
 the "you are here" dot and labels follow the stairs instead of floating over
 (or under) them.

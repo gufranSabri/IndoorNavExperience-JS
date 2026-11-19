@@ -31,7 +31,7 @@ import {
 import { makeShape, extrude } from './shapes.js';
 import { mergeGeometries } from './geometryMerge.js';
 import { buildKiosk } from './KioskBuilder.js';
-import { buildStairs } from './StairsBuilder.js';
+import { buildStairs, zoneDirections } from './StairsBuilder.js';
 import { resolveRoomProfile, profileStyle } from './roomProfiles.js';
 
 // ---- boundary walls --------------------------------------------------
@@ -404,26 +404,21 @@ export function buildBuilding(floorDoc, projector, pointObjects = floorDoc.objec
     .map((d) => ({ a: projector.toWorldArr(d.start), b: projector.toWorldArr(d.end) }));
 
   const floorScope = floorDoc.elements?.floor_scope;
-  // A plain user toggle on the Floor Scope page: whether this floor has
-  // nothing below it. Everywhere else it governs how a floor's exclusion
-  // zones (atria/stairwells) are built — see buildStairs.
-  const isLowestFloor = !!floorScope?.is_lowest_floor;
-
-  const stairs = buildStairs(floorScope, projector, { floorY: BASE_HEIGHT, isLowestFloor });
+  // Each exclusion zone has its own `direction`: "below" cuts a stairwell
+  // shaft into the floor (there is a real floor below to reveal); "above"
+  // opens nothing — its stairs just climb up out of solid ground.
+  const directions = zoneDirections(floorScope);
+  const stairs = buildStairs(floorScope, projector, { floorY: BASE_HEIGHT });
   root.add(stairs.group);
 
-  // Openings in the floor (atria / stairwells) only make sense where there is
-  // a real floor below to reveal — on the lowest floor the same zones instead
-  // just carry stairs climbing up out of solid ground (see buildStairs).
   const exclusionAreas = floorScope?.exclusion_areas || [];
-  const openings = isLowestFloor
-    ? []
-    : exclusionAreas
-        .map((area) => ({
-          id: area.id,
-          outline: roundPolygon(cleanPolygon((area.polygon || []).map((p) => projector.toWorldArr(p))), VOID_CORNER_RADIUS),
-        }))
-        .filter((o) => o.outline.length >= 3);
+  const openings = exclusionAreas
+    .filter((area) => directions.get(area.id) !== 'above')
+    .map((area) => ({
+      id: area.id,
+      outline: roundPolygon(cleanPolygon((area.polygon || []).map((p) => projector.toWorldArr(p))), VOID_CORNER_RADIUS),
+    }))
+    .filter((o) => o.outline.length >= 3);
 
   // Base plinth: the building's own outline, a little larger, rounded.
   const baseOutline = offsetPolygon(boundary, BASE_MARGIN, { join: 'round' });

@@ -146,9 +146,13 @@
     window.addEventListener('resize', () => view.refreshInsets());
 
     // The two sample floors (see docs/MAP_DATA_STORAGE.md for the on-disk layout this mirrors).
+    
     const FLOORS = [
-      { name: 'Floor 1', url: './3D_satellite/example/data/floors/2/0/' },
-      { name: 'Floor 2', url: './3D_satellite/example/data/floors/2/1/' },
+      // { name: 'Floor 1', url: './3D_satellite/example/data/floors/2/0/' },
+      // { name: 'Floor 2', url: './3D_satellite/example/data/floors/2/1/' },
+
+      { name: 'Floor 1', url: './3D_satellite/example/data/floors/3/0/' },
+      { name: 'Floor 2', url: './3D_satellite/example/data/floors/3/1/' },
     ];
     const switchEl = document.getElementById('floor-switch');
     const titleEl = document.getElementById('floor-title');
