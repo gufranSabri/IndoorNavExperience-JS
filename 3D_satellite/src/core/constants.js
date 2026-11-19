@@ -7,11 +7,12 @@ export const BASE_HEIGHT = 0.6; // meters, the plinth the building sits on
 export const BASE_MARGIN = 1.7; // meters the plinth extends past the outer wall
 export const WALL_HEIGHT = 5.2; // meters, boundary walls
 export const WALL_THICKNESS = 0.62;
-export const WALL_CORNER_RADIUS = 1.0; // meters, rounding of the boundary wall's corners
+export const WALL_CORNER_RADIUS = 0.5; // meters, rounding of the boundary wall's corners
 export const ROOM_CORNER_RADIUS = 0.35; // meters, rounding of every room's corners
 export const VOID_CORNER_RADIUS = 0.7; // meters, rounding of the stairwell opening
 export const ROOM_HEIGHT = 4.1; // meters, "slightly shorter" than the walls
 export const ROOM_GAP = 0.26; // meters of empty space between neighbouring rooms
+export const NEST_LIFT = 0.15; // meters of extra height per larger room a room sits inside — keeps overlapping roofs from z-fighting
 export const BEVEL = 0.07; // meters, chamfer that catches the light on every top edge
 
 export const COLORS = {

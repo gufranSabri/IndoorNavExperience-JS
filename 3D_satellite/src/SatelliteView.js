@@ -4,7 +4,7 @@ import { buildBuilding } from './core/BuildingBuilder.js';
 import { MapControls, fitDistanceForPoints } from './core/MapControls.js';
 import { RouteRenderer } from './core/RouteRenderer.js';
 import { loadFloorData, buildRouteNodes, buildPathIndex, findRoute, resolveNearestByLabel, pickDefaultStartNode } from './core/FloorDataLoader.js';
-import { pointInPolygon } from './core/polygon.js';
+import { pointInPolygon, longAxis } from './core/polygon.js';
 import { LabelLayer } from './ui/LabelLayer.js';
 import { UserMarker, DestinationPin } from './ui/Markers.js';
 import { MapControlsUI } from './ui/MapControlsUI.js';
@@ -282,10 +282,14 @@ export class SatelliteView {
     }
     this.clearRoute({ silent: true });
     this._cameraDirty = true;
+    this._startBearing = null; // a previous floor's orientation must not carry over
 
     const { boundary } = floorData;
     this.projector = createProjector(boundary.image, boundary.scale?.metersPerPixel);
     this.building = buildBuilding(boundary, this.projector, floorData.objects);
+    // The long axis comes from the raw drawn outline: the built (rounded, offset) outline's
+    // many arc segments skew the minimum-area rectangle a few degrees off the walls.
+    this._longAxis = longAxis((boundary.boundary || []).map((p) => this.projector.toWorldArr(p)));
     this.scene.add(this.building.root);
     this.pathIndex = buildPathIndex(floorData.paths);
     this.nodes = buildRouteNodes(floorData);
@@ -372,7 +376,7 @@ export class SatelliteView {
     const c = this.fitCenter;
     this.controls.set({ x: c.x, z: c.z, distance: this.fitDistance * 1.55, pitch: 0, bearing: -18 * DEG });
     this.controls.flyTo(
-      { x: c.x, z: c.z, distance: this.fitDistance * INTRO_ZOOM_DISTANCE_FACTOR, pitch: 0, bearing: this._startBearing || 0 },
+      { x: c.x, z: c.z, distance: this.fitDistance * INTRO_ZOOM_DISTANCE_FACTOR, pitch: 0, bearing: this._startBearing ?? this._alignedBearing() ?? 0 },
       2.4
     );
   }
@@ -575,6 +579,35 @@ export class SatelliteView {
     return !!p;
   }
 
+  // The bearing that lays the building's longer side along the screen's longer
+  // side: a portrait phone gets the building standing up the screen, a
+  // landscape kiosk gets it running across. The long axis is the building's
+  // own (its outline's minimum-area rectangle), so a building drawn at an angle
+  // still lines up exactly. A bearing and bearing + 180° both fit; `away`
+  // ({x, z}, optional) picks the one whose screen-up points along it, else the
+  // one nearest north. A near-square building has no clear long side, but its
+  // own walls still give a stable axis, so it is aligned the same way.
+  _alignedBearing(away = null) {
+    const axis = this._longAxis;
+    const w = this.container.clientWidth;
+    const h = this.container.clientHeight;
+    if (!axis || !w || !h) return null;
+    // Screen-up for bearing b is (-sin b, -cos b); screen-right is (cos b, -sin b).
+    const b0 = h >= w ? Math.atan2(-axis.x, -axis.z) : Math.atan2(-axis.z, axis.x);
+    const b1 = b0 + Math.PI;
+    const up = (b) => ({ x: -Math.sin(b), z: -Math.cos(b) });
+    const score = (b) => {
+      const u = up(b);
+      return away ? u.x * away.x + u.z * away.z : u.x * 0 + u.z * -1; // no exit: nearest north
+    };
+    const best = score(b0) >= score(b1) ? b0 : b1;
+    // A building a degree or two off true (hand-traced outline) should still
+    // sit square on the screen: snap to the nearest cardinal direction.
+    const quarter = Math.PI / 2;
+    const snapped = Math.round(best / quarter) * quarter;
+    return Math.abs(best - snapped) < 6 * DEG ? snapped : best;
+  }
+
   // Turns the map to the N/E/S/W direction closest to pointing away from the
   // nearest exit (straight-line), i.e. the exit ends up behind the user.
   _orientToStart(start) {
@@ -594,8 +627,15 @@ export class SatelliteView {
     if (!nearest) return;
     const dx = start.x - nearest.x;
     const dz = start.z - nearest.z;
-    const h = Math.abs(dx) > Math.abs(dz) ? { x: Math.sign(dx), z: 0 } : { x: 0, z: Math.sign(dz) };
-    this._startBearing = Math.atan2(-h.x, -h.z);
+    // Prefer the screen-aligned orientation (see _alignedBearing), flipped
+    // whichever way puts the exit behind the user (cardinal snap only if the
+    // outline is unusable).
+    const aligned = this._alignedBearing({ x: dx, z: dz });
+    if (aligned != null) this._startBearing = aligned;
+    else {
+      const h = Math.abs(dx) > Math.abs(dz) ? { x: Math.sign(dx), z: 0 } : { x: 0, z: Math.sign(dz) };
+      this._startBearing = Math.atan2(-h.x, -h.z);
+    }
     if (!this._pendingIntro && !(this.route && this.routeRenderer.hasRoute)) {
       this.controls.flyTo({ bearing: this._startBearing }, 1.2);
     }

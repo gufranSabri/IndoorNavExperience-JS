@@ -294,3 +294,37 @@ export function roundPolygon(pts, radius, arcStep = Math.PI / 10) {
   }
   return out;
 }
+
+// The long axis of a point set: the direction of the longer side of its
+// minimum-area bounding rectangle (tried at every edge's angle, so a building
+// drawn at any rotation is measured along its own walls, not the world axes).
+// Returns { x, z } — a unit vector, sign arbitrary — plus the rectangle's
+// `length` (>= `width`). Null for fewer than 2 distinct points.
+export function longAxis(pts) {
+  const n = pts.length;
+  let best = null;
+  for (let i = 0; i < n; i++) {
+    const a = pts[i];
+    const b = pts[(i + 1) % n];
+    const len = Math.hypot(b.x - a.x, b.z - a.z);
+    if (len < 1e-6) continue;
+    const ux = (b.x - a.x) / len;
+    const uz = (b.z - a.z) / len;
+    let minU = Infinity, maxU = -Infinity, minV = Infinity, maxV = -Infinity;
+    for (const p of pts) {
+      const u = p.x * ux + p.z * uz;
+      const v = -p.x * uz + p.z * ux;
+      if (u < minU) minU = u;
+      if (u > maxU) maxU = u;
+      if (v < minV) minV = v;
+      if (v > maxV) maxV = v;
+    }
+    const du = maxU - minU;
+    const dv = maxV - minV;
+    const area = du * dv;
+    if (!best || area < best.area) {
+      best = du >= dv ? { x: ux, z: uz, length: du, width: dv, area } : { x: -uz, z: ux, length: dv, width: du, area };
+    }
+  }
+  return best && { x: best.x, z: best.z, length: best.length, width: best.width };
+}

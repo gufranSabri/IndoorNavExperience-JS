@@ -7,6 +7,7 @@ import {
   WALL_CORNER_RADIUS,
   ROOM_HEIGHT,
   ROOM_GAP,
+  NEST_LIFT,
   ROOM_CORNER_RADIUS,
   VOID_CORNER_RADIUS,
   COLORS,
@@ -260,14 +261,26 @@ function buildDoors(spec, room, footprint, blockHeight, doors, projector) {
 function buildRooms(floorDoc, projector) {
   const rooms = [];
   const areas = [];
+
+  // Rooms can overlap in the data (a room drawn inside another). Two boxes of
+  // the same height would have coplanar roofs that z-fight (flicker) whenever
+  // the camera moves, so a room nested inside N larger rooms is made N * NEST_LIFT
+  // taller — enough to separate the depth values, still reads as one level.
+  const candidates = [];
   for (const room of floorDoc.elements?.rooms || []) {
     if (SKIP_ROOM_IDS.includes(room.id)) continue;
     if (room.status && room.status !== 'active') continue;
     const world = cleanPolygon((room.polygon || []).map((p) => projector.toWorldArr(p)));
     if (world.length < 3) continue;
+    candidates.push({ room, world, pole: poleOfInaccessibility(world), area: Math.abs(signedArea(world)) });
+  }
+
+  for (const { room, world, pole, area } of candidates) {
+    const nest = candidates.filter((o) => o.room !== room && o.area > area && pointInPolygon(pole, o.world)).length;
+    const lift = nest * NEST_LIFT;
 
     const profile = resolveRoomProfile(room);
-    const pole = poleOfInaccessibility(world);
+    if (profile.height != null) profile.height += lift;
     const common = {
       id: room.id,
       nodeId: `room-${room.id}`,
