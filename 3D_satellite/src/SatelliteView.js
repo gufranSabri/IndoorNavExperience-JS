@@ -294,8 +294,8 @@ export class SatelliteView {
     this.pathIndex = buildPathIndex(floorData.paths);
     this.nodes = buildRouteNodes(floorData);
     this.nodeById = new Map(this.nodes.map((n) => [n.id, n]));
-    /** Id of the kiosk closest to a main exit, or null — the default start. */
-    this.defaultStartNodeId = pickDefaultStartNode(this.nodes, this.pathIndex);
+    /** Default start: "Kiosk 1", else any kiosk, else any exit, else null. */
+    this.defaultStartNodeId = pickDefaultStartNode(this.nodes);
     this.roomByNodeId = new Map(this.building.rooms.map((r) => [r.nodeId, r]));
     // Every place: solid rooms plus glass / unbuilt areas.
     this.placeByNodeId = new Map([...this.building.rooms, ...this.building.areas].map((r) => [r.nodeId, r]));

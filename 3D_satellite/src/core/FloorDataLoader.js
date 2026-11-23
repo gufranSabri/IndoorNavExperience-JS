@@ -135,25 +135,17 @@ export function resolveNearestByLabel(nodes, pathIndex, fromId, targetId) {
   return best;
 }
 
-// The default start: of all kiosk nodes, the one closest to a "main exit" (see
-// DEFAULT_START). Closeness is the routed distance when paths.json has one,
-// else straight-line. Returns null if the floor has no kiosk or no such exit.
-export function pickDefaultStartNode(nodes, pathIndex) {
+// The default start (see DEFAULT_START), in order of preference:
+//   1. the kiosk labelled "Kiosk 1";
+//   2. otherwise any kiosk (the first one in the floor data);
+//   3. otherwise any exit (the first one in the floor data);
+//   4. otherwise null — nothing is pre-selected.
+export function pickDefaultStartNode(nodes) {
   const kiosks = nodes.filter((n) => n.class !== 'room' && DEFAULT_START.nodeClass.test(n.class));
-  const exits = nodes.filter((n) => n.class === 'exits' && DEFAULT_START.exitLabel.test(n.label || ''));
-  let best = null;
-  let bestDistance = Infinity;
-  for (const kiosk of kiosks) {
-    for (const exit of exits) {
-      const route = findRoute(pathIndex, kiosk.id, exit.id);
-      const [kx, ky] = kiosk.centroidPx || [0, 0];
-      const [ex, ey] = exit.centroidPx || [0, 0];
-      const d = route ? route.distance : Math.hypot(kx - ex, ky - ey) * 1e6; // unrouted loses to any routed pair
-      if (d < bestDistance) {
-        best = kiosk;
-        bestDistance = d;
-      }
-    }
-  }
-  return best ? best.id : null;
+  const preferredKey = labelKey(DEFAULT_START.preferredLabel);
+  const preferred = kiosks.find((n) => labelKey(n.label) === preferredKey);
+  if (preferred) return preferred.id;
+  if (kiosks.length) return kiosks[0].id;
+  const exit = nodes.find((n) => n.class === 'exits');
+  return exit ? exit.id : null;
 }

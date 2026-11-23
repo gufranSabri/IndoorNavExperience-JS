@@ -177,10 +177,12 @@ export const OBJECT_STYLE = {
 
 // ---- default start ----------------------------------------------------
 // The start pre-selected on a floor (and where the "you are here" dot begins):
-// the kiosk node closest to an exit node whose label matches.
+// the kiosk labelled `preferredLabel`, else any kiosk, else any exit, else none
+// (see pickDefaultStartNode in FloorDataLoader.js).
 export const DEFAULT_START = {
   nodeClass: /kiosk/i, // matched against a node's `class` (objects.json key)
-  exitLabel: /^main exit/i, // matched against the exit's label
+  preferredLabel: 'Kiosk 1', // compared case- and whitespace-insensitively
+  exitLabel: /^main exit/i, // kiosk screens face the nearest exit with a matching label
 };
 
 // ---- kiosk -------------------------------------------------------------

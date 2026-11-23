@@ -137,7 +137,7 @@
 
     const view = new SatelliteView(mapEl, { eventTarget: mapEl, getInsets });
 
-    // The kiosk nearest a "main exit" (view.defaultStartNodeId) is where the blue
+    // "Kiosk 1" (else any kiosk, else any exit; view.defaultStartNodeId) is where the blue
     // "you are here" dot starts, and the pre-selected start of any route.
     new RouteSelector(document.getElementById('selector'), { eventTarget: mapEl });
     new RouteControls(document.getElementById('player'), { eventTarget: mapEl });

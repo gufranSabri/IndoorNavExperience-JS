@@ -185,7 +185,7 @@ export function formatDistance(meters) {
  * shows the distance / walking time from 'wayfinding:route-set'.
  *
  * options.defaultStartId pre-selects the start; without it, the floor's
- * default (the kiosk nearest a "main exit", SatelliteView.defaultStartNodeId) is used.
+ * default ("Kiosk 1", else any kiosk, else any exit — SatelliteView.defaultStartNodeId) is used.
  */
 export class RouteSelector {
   constructor(container, options = {}) {
@@ -366,7 +366,7 @@ export class RouteSelector {
     this._fill(this.destSelect, 'Choose destination');
     this.startTrigger.disabled = this.startSelect.disabled;
     this.destTrigger.disabled = this.destSelect.disabled;
-    // An explicit option wins; otherwise the floor's own pick (kiosk nearest a main exit).
+    // An explicit option wins; otherwise the floor's own pick ("Kiosk 1", else any kiosk, else any exit).
     // Nodes sharing a name were deduped out of the list, so fall back to the survivor.
     const wanted = this.defaultStartId || floorDefaultStartId;
     const target = nodes.find((n) => n.id === wanted);
