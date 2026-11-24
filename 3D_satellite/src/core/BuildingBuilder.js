@@ -279,6 +279,16 @@ function buildRooms(floorDoc, projector) {
     const nest = candidates.filter((o) => o.room !== room && o.area > area && pointInPolygon(pole, o.world)).length;
     const lift = nest * NEST_LIFT;
 
+    // A manually drawn "Draw Area" room (RoomDto.wall_ids null - see
+    // Wayfinding-Editor's roomCanvas.js/RoomDto) has no wall network of its
+    // own, so unlike a wall-detected room its drawn boundary IS its real
+    // footprint, not an inner face already a half-wall-thickness in from the
+    // true edge. Shrinking it by ROOM_GAP/2 like every other room would make
+    // it visibly smaller than the dead zone it's meant to mark on the Paths
+    // page (see pathsGraph.js's own obstacles array), so it renders at its
+    // exact drawn boundary instead.
+    const isManualArea = room.wall_ids == null;
+
     const profile = resolveRoomProfile(room);
     if (profile.height != null) profile.height += lift;
     const common = {
@@ -303,8 +313,10 @@ function buildRooms(floorDoc, projector) {
 
     if (profile.mode === RENDER_MODE.GLASS) {
       // Shrunk further inward than a normal room's ROOM_GAP inset (profile
-      // padding), so the box reads as visibly smaller than its real boundary.
-      const inset = offsetPolygon(world, -(ROOM_GAP / 2 + (profile.padding || 0)));
+      // padding), so the box reads as visibly smaller than its real boundary -
+      // skipped for a manual area (see isManualArea above), which renders at
+      // its exact drawn boundary instead.
+      const inset = isManualArea ? world : offsetPolygon(world, -(ROOM_GAP / 2 + (profile.padding || 0)));
       if (inset.length < 3 || Math.abs(signedArea(inset)) < 0.5) {
         areas.push({ ...common, height: 0, mesh: null });
         continue;
@@ -334,8 +346,9 @@ function buildRooms(floorDoc, projector) {
     }
 
     // BLOCK. A hair of inset on every side: two rooms sharing a wall end up
-    // ROOM_GAP apart, which is what draws the "wall" between them. Corners are rounded.
-    const inset = offsetPolygon(world, -ROOM_GAP / 2);
+    // ROOM_GAP apart, which is what draws the "wall" between them. Corners
+    // are rounded. Skipped for a manual area (see isManualArea above).
+    const inset = isManualArea ? world : offsetPolygon(world, -ROOM_GAP / 2);
     if (inset.length < 3 || Math.abs(signedArea(inset)) < 0.5) continue;
     const footprint = roundPolygon(inset, ROOM_CORNER_RADIUS);
 
