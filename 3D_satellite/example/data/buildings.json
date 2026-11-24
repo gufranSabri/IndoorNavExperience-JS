@@ -1,0 +1,72 @@
+{
+  "NextBuildingId": 5,
+  "Buildings": [
+    {
+      "Id": 2,
+      "Name": "Mujamma",
+      "CreatedUtc": "2026-09-27T05:23:28.949802Z",
+      "Floors": [
+        {
+          "Id": 0,
+          "BuildingId": 2,
+          "Name": "floor1",
+          "FloorNumber": 1,
+          "Mapped": false,
+          "MetersPerPixel": 0.06082725060827251,
+          "LastModifiedUtc": "2026-09-29T10:44:37.869917Z"
+        },
+        {
+          "Id": 1,
+          "BuildingId": 2,
+          "Name": "floor2",
+          "FloorNumber": 2,
+          "Mapped": false,
+          "MetersPerPixel": 0.06195019204559534,
+          "LastModifiedUtc": "2026-09-27T06:17:38.762621Z"
+        }
+      ]
+    },
+    {
+      "Id": 3,
+      "Name": "Dammam Office Building",
+      "CreatedUtc": "2026-11-18T11:06:17.141286Z",
+      "Floors": [
+        {
+          "Id": 0,
+          "BuildingId": 3,
+          "Name": "Ground",
+          "FloorNumber": 1,
+          "Mapped": false,
+          "MetersPerPixel": 0.0345181453493796,
+          "LastModifiedUtc": "2026-11-23T19:04:13.371768Z"
+        },
+        {
+          "Id": 1,
+          "BuildingId": 3,
+          "Name": "Floor 1",
+          "FloorNumber": 2,
+          "Mapped": false,
+          "LastModifiedUtc": "2026-11-24T09:02:59.6Z"
+        },
+        {
+          "Id": 2,
+          "BuildingId": 3,
+          "Name": "Floor 2",
+          "FloorNumber": 3,
+          "Mapped": false,
+          "MetersPerPixel": 0.013085382118322051,
+          "LastModifiedUtc": "2026-11-19T08:16:55.242746Z"
+        },
+        {
+          "Id": 3,
+          "BuildingId": 3,
+          "Name": "Floor 3",
+          "FloorNumber": 4,
+          "Mapped": false,
+          "MetersPerPixel": 0.012852311161217588,
+          "LastModifiedUtc": "2026-11-19T10:22:07.780967Z"
+        }
+      ]
+    }
+  ]
+}

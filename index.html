@@ -86,9 +86,46 @@
       }
       .player-wrap { bottom: calc(14px + env(safe-area-inset-bottom)); }
     }
+
+    /* Building picker - the root "/" view, shown instead of the map/panel
+       until a building is chosen (see ?building= handling below). The
+       [hidden] rule must come first/win over .picker-wrap's own `display`
+       (an author-stylesheet class rule otherwise always beats the
+       UA stylesheet's default `[hidden] { display: none }`, attribute or
+       not) - without it this overlay stays visible and blocks the map on
+       every page, building selected or not. */
+    .picker-wrap[hidden] { display: none; }
+    .picker-wrap {
+      position: absolute; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center;
+      background: #0b0c0f;
+    }
+    .picker-card {
+      width: min(420px, calc(100vw - 48px)); max-height: calc(100vh - 96px); overflow: auto;
+      padding: 20px; border-radius: 20px; color: var(--sat-text);
+      background: var(--sat-glass); border: 1px solid var(--sat-border);
+      -webkit-backdrop-filter: blur(18px) saturate(1.5); backdrop-filter: blur(18px) saturate(1.5);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+    }
+    .picker-card h1 { margin: 2px 2px 16px; font-size: 18px; font-weight: 650; letter-spacing: -0.01em; }
+    .picker-list { display: flex; flex-direction: column; gap: 8px; }
+    .picker-list button {
+      appearance: none; display: block; width: 100%; text-align: left; box-sizing: border-box;
+      padding: 14px 16px; border: 1px solid var(--sat-border); border-radius: 14px;
+      background: rgba(255,255,255,.04); color: var(--sat-text);
+      font: 600 14px/1.3 inherit; font-family: inherit; cursor: pointer; transition: background .15s ease;
+    }
+    .picker-list button:hover { background: rgba(255,255,255,.1); }
+    .picker-empty, .picker-error { margin: 2px; font-size: 13px; color: var(--sat-muted); }
   </style>
 </head>
 <body>
+  <div class="picker-wrap" id="picker-wrap" hidden>
+    <div class="picker-card">
+      <h1>Select a building</h1>
+      <div class="picker-list" id="picker-list"></div>
+    </div>
+  </div>
+
   <div id="map"></div>
 
   <div class="panel">
@@ -113,81 +150,176 @@
     import { SatelliteView, RouteSelector, RouteControls } from './3D_satellite/src/index.js';
     import qrcodegen from './3D_satellite/src/vendor/qrcodegen.js';
 
-    // Everything talks through DOM events on this one element.
-    const mapEl = document.getElementById('map');
-    const panel = document.querySelector('.panel');
-    const player = document.getElementById('player');
-    // Keep the floating UI out of the way when framing the building / a route.
-    const getInsets = () => {
-      const p = panel.getBoundingClientRect();
-      const playerH = player.firstElementChild?.classList.contains('is-visible') ? 96 : 0;
-      if (mapEl.clientWidth > 900) return { left: p.right + 8, right: 70, bottom: playerH };
-      return { top: p.bottom + 4, bottom: Math.max(playerH, 12), right: 60 };
-    };
-    // QR code of this page's URL. If you're browsing via localhost, a phone can't reach it —
-    // set PHONE_URL to an address it can (LAN IP or deployed URL), e.g. 'http://192.168.1.20:8000/'. When hosted online, leave it null: the QR then encodes the site's own address.
-    const PHONE_URL = null;
-    const qr = qrcodegen.QrCode.encodeText(PHONE_URL || location.origin + location.pathname, qrcodegen.QrCode.Ecc.MEDIUM);
-    const border = 2; // quiet zone, in modules
-    let d = '';
-    for (let y = 0; y < qr.size; y++) for (let x = 0; x < qr.size; x++) if (qr.getModule(x, y)) d += `M${x + border},${y + border}h1v1h-1z`;
-    const dim = qr.size + border * 2;
-    document.getElementById('qr').innerHTML =
-      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${dim} ${dim}" shape-rendering="crispEdges" role="img" aria-label="QR code to open this page on a phone"><rect width="100%" height="100%" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
+    // Root ("/", no ?building=) shows a building picker instead of the map;
+    // picking one (or loading a link with ?building= already set) navigates
+    // to ?building=<id> and shows the usual map/floor-switch UI for it.
+    // buildings.json - a copy of the Editor's own App_Data file, kept in
+    // sync by hand whenever a building/floor is added or renamed there - is
+    // the one source of truth for building names AND each building's floor
+    // names/ids; which of those floors actually get a button here is still
+    // decided by probing floors/<buildingId>/<floorId>/boundary.json for
+    // existence, since a building can list a floor whose data was never
+    // copied/exported into this static site's own data folder.
+    const BUILDINGS_JSON_URL = './3D_satellite/example/data/buildings.json';
+    const FLOORS_BASE = './3D_satellite/example/data/floors';
 
-    const view = new SatelliteView(mapEl, { eventTarget: mapEl, getInsets });
+    const params = new URLSearchParams(location.search);
+    const buildingId = params.get('building');
 
-    // "Kiosk 1" (else any kiosk, else any exit; view.defaultStartNodeId) is where the blue
-    // "you are here" dot starts, and the pre-selected start of any route.
-    new RouteSelector(document.getElementById('selector'), { eventTarget: mapEl });
-    new RouteControls(document.getElementById('player'), { eventTarget: mapEl });
-    // The card grows/shrinks when a route is set or cleared; keep the map framed around it.
-    mapEl.addEventListener('wayfinding:route-cleared', () => view.refreshInsets());
-    window.addEventListener('resize', () => view.refreshInsets());
+    const pickerWrap = document.getElementById('picker-wrap');
+    const pickerList = document.getElementById('picker-list');
 
-    // The two sample floors (see docs/MAP_DATA_STORAGE.md for the on-disk layout this mirrors).
-    
-    const FLOORS = [
-      // { name: 'Floor 1', url: './3D_satellite/example/data/floors/2/0/' },
-      // { name: 'Floor 2', url: './3D_satellite/example/data/floors/2/1/' },
+    function goToBuilding(id) {
+      const url = new URL(location.href);
+      url.searchParams.set('building', id);
+      location.href = url.toString();
+    }
 
-      { name: 'Ground', url: './3D_satellite/example/data/floors/3/0/' },
-      // { name: 'Floor 1', url: './3D_satellite/example/data/floors/3/1/' },
-      { name: 'Floor 2', url: './3D_satellite/example/data/floors/3/2/' },
-      { name: 'Floor 3', url: './3D_satellite/example/data/floors/3/3/' },
-    ];
-    const switchEl = document.getElementById('floor-switch');
-    const titleEl = document.getElementById('floor-title');
-    let loadToken = 0;
-    async function showFloor(index) {
-      const token = ++loadToken; // a slow earlier load must not overwrite a newer pick
-      [...switchEl.children].forEach((b, i) => b.classList.toggle('is-active', i === index));
-      titleEl.textContent = FLOORS[index].name;
+    async function loadBuildingsManifest() {
+      const res = await fetch(BUILDINGS_JSON_URL);
+      if (!res.ok) throw new Error(`Failed to fetch ${BUILDINGS_JSON_URL}: ${res.status} ${res.statusText}`);
+      const doc = await res.json();
+      return doc.Buildings || doc.buildings || [];
+    }
+
+    async function floorExists(buildingId, floorId) {
       try {
-        await view.loadFloor(FLOORS[index].url);
-        if (token !== loadToken) return;
-        if (view.defaultStartNodeId) view.setUserNode(view.defaultStartNodeId);
-        view.refreshInsets();
-      } catch (err) {
-        console.error(err);
-        mapEl.insertAdjacentHTML('beforeend', `<p style="position:absolute;color:#fff;padding:20px">Failed to load floor data: ${err.message}</p>`);
+        const res = await fetch(`${FLOORS_BASE}/${buildingId}/${floorId}/boundary.json`, { method: 'HEAD' });
+        return res.ok;
+      } catch {
+        return false;
       }
     }
-    FLOORS.forEach((floor, i) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.textContent = floor.name;
-      btn.addEventListener('click', () => showFloor(i));
-      switchEl.appendChild(btn);
-    });
-    showFloor(0);
 
-    const hint = document.getElementById('hint');
-    const hideHint = () => hint.classList.add('is-hidden');
-    mapEl.addEventListener('pointerdown', hideHint, { once: true });
-    mapEl.addEventListener('wheel', hideHint, { once: true, passive: true });
+    async function showBuildingPicker() {
+      pickerWrap.hidden = false;
+      let buildings;
+      try {
+        buildings = await loadBuildingsManifest();
+      } catch (err) {
+        console.error(err);
+        pickerList.innerHTML = `<p class="picker-error">Couldn't load the building list: ${err.message}</p>`;
+        return;
+      }
+      if (!buildings.length) {
+        pickerList.innerHTML = '<p class="picker-empty">No buildings yet.</p>';
+        return;
+      }
+      pickerList.innerHTML = '';
+      for (const b of buildings) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = b.Name || b.name || `Building ${b.Id ?? b.id}`;
+        btn.addEventListener('click', () => goToBuilding(b.Id ?? b.id));
+        pickerList.appendChild(btn);
+      }
+    }
 
-    window.view = view; // handy for poking around in the console
+    // Resolves the current building's floor list: buildings.json gives the
+    // candidate {id,name} pairs (in Floors[], FloorNumber order), and each is
+    // kept only if its data actually exists in this static site's own data
+    // folder - a building can list a floor the Editor created but whose
+    // boundary/objects/graph/paths JSON was never copied/exported here.
+    async function resolveFloors(buildingId) {
+      let buildings;
+      try {
+        buildings = await loadBuildingsManifest();
+      } catch (err) {
+        console.error(err);
+        return [];
+      }
+      const building = buildings.find((b) => String(b.Id ?? b.id) === String(buildingId));
+      if (!building) return [];
+      const candidates = [...(building.Floors || building.floors || [])]
+        .sort((a, b) => (a.FloorNumber ?? a.floorNumber ?? 0) - (b.FloorNumber ?? b.floorNumber ?? 0));
+      const checks = await Promise.all(candidates.map((f) => floorExists(buildingId, f.Id ?? f.id)));
+      return candidates
+        .filter((_, i) => checks[i])
+        .map((f) => ({ name: f.Name || f.name || `Floor ${f.Id ?? f.id}`, url: `${FLOORS_BASE}/${buildingId}/${f.Id ?? f.id}/` }));
+    }
+
+    async function initMap(buildingId) {
+      // Everything talks through DOM events on this one element.
+      const mapEl = document.getElementById('map');
+      const panel = document.querySelector('.panel');
+      const player = document.getElementById('player');
+      // Keep the floating UI out of the way when framing the building / a route.
+      const getInsets = () => {
+        const p = panel.getBoundingClientRect();
+        const playerH = player.firstElementChild?.classList.contains('is-visible') ? 96 : 0;
+        if (mapEl.clientWidth > 900) return { left: p.right + 8, right: 70, bottom: playerH };
+        return { top: p.bottom + 4, bottom: Math.max(playerH, 12), right: 60 };
+      };
+      // QR code of this page's URL (building and all). If you're browsing via localhost, a phone can't
+      // reach it — set PHONE_URL to an address it can (LAN IP or deployed URL), e.g. 'http://192.168.1.20:8000/'.
+      // When hosted online, leave it null: the QR then encodes the site's own address.
+      const PHONE_URL = null;
+      const qr = qrcodegen.QrCode.encodeText(PHONE_URL || location.href, qrcodegen.QrCode.Ecc.MEDIUM);
+      const border = 2; // quiet zone, in modules
+      let d = '';
+      for (let y = 0; y < qr.size; y++) for (let x = 0; x < qr.size; x++) if (qr.getModule(x, y)) d += `M${x + border},${y + border}h1v1h-1z`;
+      const dim = qr.size + border * 2;
+      document.getElementById('qr').innerHTML =
+        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${dim} ${dim}" shape-rendering="crispEdges" role="img" aria-label="QR code to open this page on a phone"><rect width="100%" height="100%" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
+
+      const view = new SatelliteView(mapEl, { eventTarget: mapEl, getInsets });
+
+      // "Kiosk 1" (else any kiosk, else any exit; view.defaultStartNodeId) is where the blue
+      // "you are here" dot starts, and the pre-selected start of any route.
+      new RouteSelector(document.getElementById('selector'), { eventTarget: mapEl });
+      new RouteControls(document.getElementById('player'), { eventTarget: mapEl });
+      // The card grows/shrinks when a route is set or cleared; keep the map framed around it.
+      mapEl.addEventListener('wayfinding:route-cleared', () => view.refreshInsets());
+      window.addEventListener('resize', () => view.refreshInsets());
+
+      const FLOORS = await resolveFloors(buildingId);
+      const switchEl = document.getElementById('floor-switch');
+      const titleEl = document.getElementById('floor-title');
+      if (!FLOORS.length) {
+        titleEl.textContent = 'No floors';
+        mapEl.insertAdjacentHTML('beforeend', '<p style="position:absolute;color:#fff;padding:20px">This building has no floor data yet.</p>');
+        return;
+      }
+      let loadToken = 0;
+      async function showFloor(index) {
+        const token = ++loadToken; // a slow earlier load must not overwrite a newer pick
+        [...switchEl.children].forEach((b, i) => b.classList.toggle('is-active', i === index));
+        titleEl.textContent = FLOORS[index].name;
+        try {
+          await view.loadFloor(FLOORS[index].url);
+          if (token !== loadToken) return;
+          if (view.defaultStartNodeId) view.setUserNode(view.defaultStartNodeId);
+          view.refreshInsets();
+        } catch (err) {
+          console.error(err);
+          mapEl.insertAdjacentHTML('beforeend', `<p style="position:absolute;color:#fff;padding:20px">Failed to load floor data: ${err.message}</p>`);
+        }
+      }
+      FLOORS.forEach((floor, i) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = floor.name;
+        btn.addEventListener('click', () => showFloor(i));
+        switchEl.appendChild(btn);
+      });
+      showFloor(0);
+
+      const hint = document.getElementById('hint');
+      const hideHint = () => hint.classList.add('is-hidden');
+      mapEl.addEventListener('pointerdown', hideHint, { once: true });
+      mapEl.addEventListener('wheel', hideHint, { once: true, passive: true });
+
+      window.view = view; // handy for poking around in the console
+    }
+
+    if (!buildingId) {
+      showBuildingPicker();
+      // Nothing else on this page is set up yet - the map/panel UI stays
+      // hidden (picker-wrap sits on top, z-index 10) until a picker click
+      // reloads the page with ?building= set.
+    } else {
+      initMap(buildingId);
+    }
   </script>
 </body>
 </html>
