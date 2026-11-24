@@ -164,6 +164,7 @@ export const STAIR_RISE = 0.2; // meters per step (a little tall, like the rest 
 export const STAIR_TREAD = 0.34; // meters of run per step
 export const STAIR_LIGHT = 0xa9b0bc; // top-of-stairs color; vertex colors fade it to black with depth (descending stairs only)
 export const STAIR_DARK = 0x08090b;
+export const LANDING_COLOR = 0x8d9199; // neutral gray, a shade darker than STAIR_LIGHT - flat, no depth-fade, so a landing always reads as a landing regardless of how deep its stair core goes, while still sitting in the same gray family as the stairs instead of standing out as a different material
 export const VOID_COLOR = 0x040405;
 export const DEFAULT_VOID_DEPTH = -3; // meters below the floor, used for an exclusion zone with no stairs of its own
 

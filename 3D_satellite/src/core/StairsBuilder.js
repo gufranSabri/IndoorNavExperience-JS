@@ -2,7 +2,7 @@ import * as THREE from '../vendor/three.module.js';
 import { cleanPolygon, distanceToPolygon, distanceToSegment } from './polygon.js';
 import { makeShape, extrude } from './shapes.js';
 import { mergeGeometries } from './geometryMerge.js';
-import { STAIR_RISE, STAIR_TREAD, STAIR_LIGHT, STAIR_DARK, DEFAULT_VOID_DEPTH } from './constants.js';
+import { STAIR_RISE, STAIR_TREAD, STAIR_LIGHT, STAIR_DARK, LANDING_COLOR, DEFAULT_VOID_DEPTH } from './constants.js';
 
 const clamp01 = (v) => Math.max(0, Math.min(1, v));
 
@@ -158,22 +158,22 @@ export function buildStairs(floorScope, projector, { floorY } = {}) {
     const zoneBaseY = above ? floorY : floorY + level;
     if (!above) zoneDepths.set(zoneId, zoneBaseY);
 
-    const solid = (poly, topY) => {
+    const solid = (poly, topY, kind) => {
       const height = topY - zoneBaseY;
       if (poly.length < 3 || height < 0.05) return;
       const geometry = extrude(makeShape(poly), height, 0.02);
       geometry.translate(0, zoneBaseY, 0);
-      pieces.push({ geometry, above });
+      pieces.push({ geometry, above, kind });
     };
     for (const s of segments) {
       if (s.kind === 'landing') {
-        solid(s.poly, floorY + s.baseLevel);
+        solid(s.poly, floorY + s.baseLevel, 'landing');
         continue;
       }
       const stepDelta = s.delta / s.steps;
       for (let j = 0; j < s.steps; j++) {
         const strip = clipToBand(s.poly, s.origin, s.dir, (s.run * j) / s.steps, (s.run * (j + 1)) / s.steps);
-        solid(strip, floorY + s.baseLevel + (j + 1) * stepDelta);
+        solid(strip, floorY + s.baseLevel + (j + 1) * stepDelta, 'stair');
       }
     }
   }
@@ -182,15 +182,20 @@ export function buildStairs(floorScope, projector, { floorY } = {}) {
     // Descending stairs fade from light stone at the top to black at the
     // bottom of the deepest shaft on this floor — a cheap ambient-occlusion
     // look that gives the depth. Climbing stairs stay plain light stone.
+    // Landings skip all of this and stay a flat light blue regardless of
+    // direction/depth, so a landing always reads as a landing rather than
+    // fading toward black like a deep descending flight would.
     const deepest = Math.min(floorY + DEFAULT_VOID_DEPTH, ...zoneDepths.values());
     const light = new THREE.Color(STAIR_LIGHT);
     const dark = new THREE.Color(STAIR_DARK);
+    const landing = new THREE.Color(LANDING_COLOR);
     const mix = new THREE.Color();
-    for (const { geometry, above } of pieces) {
+    for (const { geometry, above, kind } of pieces) {
       const position = geometry.attributes.position;
       const colors = new Float32Array(position.count * 3);
       for (let i = 0; i < position.count; i++) {
-        if (above) mix.copy(light);
+        if (kind === 'landing') mix.copy(landing);
+        else if (above) mix.copy(light);
         else {
           const t = clamp01((position.getY(i) - deepest) / (floorY - deepest || 1));
           mix.copy(dark).lerp(light, Math.pow(t, 1.15));
