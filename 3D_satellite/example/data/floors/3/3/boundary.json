@@ -15053,7 +15053,7 @@
       {
         "id": "cf6de12f-bd83-49fe-be26-dcdb4eb7b8ac",
         "name": "Room 1",
-        "area": 12304575.07,
+        "area": 16226885.68,
         "status": "active",
         "wall_ids": [
           "c507b30e-f91e-48a3-8d78-3d85fdd7ace6",
@@ -15396,7 +15396,7 @@
       {
         "id": "ffee0a3f-d56b-4a5f-8a61-5de5aef4e5a1",
         "name": "Room 2",
-        "area": 2149835.92,
+        "area": 2531039.53,
         "status": "active",
         "wall_ids": [
           "6f8350f4-e4b3-4aee-bc9c-ab42f1e10251",
@@ -16236,7 +16236,7 @@
       {
         "id": "6dc27991-00a7-4719-975a-8cede674c1e9",
         "name": "Room 12",
-        "area": 293174.13,
+        "area": 346621.97,
         "status": "active",
         "wall_ids": [
           "27f63703-c2dd-45a9-b287-772aaebb5a31",
@@ -18321,7 +18321,7 @@
       },
       {
         "id": "5b38c8af-9e7f-46c5-a754-687db13b610d",
-        "name": "Elevator",
+        "name": "Elevator 4",
         "area": 76956.81,
         "status": "active",
         "wall_ids": [
@@ -18359,7 +18359,7 @@
       },
       {
         "id": "2709042b-b428-419b-9c8e-dcbe224d9cfa",
-        "name": "Elevator",
+        "name": "Elevator 2",
         "area": 75934.78,
         "status": "active",
         "wall_ids": [
@@ -18452,7 +18452,7 @@
       },
       {
         "id": "73a8904f-94c5-4c97-a826-7250ed0b4828",
-        "name": "Elevator",
+        "name": "Elevator 1",
         "area": 72790.22,
         "status": "active",
         "wall_ids": [
@@ -18490,7 +18490,7 @@
       },
       {
         "id": "bab6db14-e8c9-41a9-83db-c23eec7bf4d9",
-        "name": "Elevator",
+        "name": "Elevator 3",
         "area": 69986.86,
         "status": "active",
         "wall_ids": [

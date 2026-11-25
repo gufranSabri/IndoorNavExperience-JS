@@ -19130,7 +19130,7 @@
       {
         "id": "d647b2a0-7b8a-4328-a934-64b6ed7659f7",
         "name": "Room 1",
-        "area": 10589608.13,
+        "area": 10343268.68,
         "status": "active",
         "wall_ids": [
           "bf3e627f-52e8-462f-9f45-b53bf78cff85",
@@ -20815,7 +20815,7 @@
       {
         "id": "9605863e-447c-4aaf-89a8-40f0200696a4",
         "name": "Office Services",
-        "area": 504945.08,
+        "area": 418570.42,
         "status": "active",
         "wall_ids": [
           "ae61cb39-42ae-493c-a9a9-1c28c299175e",
@@ -22122,7 +22122,7 @@
       {
         "id": "6e6a2bcb-78cf-4be6-aff7-a03aed9b2a76",
         "name": "Room 39",
-        "area": 153115.72,
+        "area": 127417.96,
         "status": "active",
         "wall_ids": [
           "312b6ac2-d64d-49d0-8100-d8317757b92a",
@@ -23722,7 +23722,7 @@
       },
       {
         "id": "2722802d-9218-4454-8d79-5c0d51efee64",
-        "name": "Elevator",
+        "name": "Elevator 3",
         "area": 28256.44,
         "status": "active",
         "wall_ids": [
@@ -23760,7 +23760,7 @@
       },
       {
         "id": "8f1d81bf-3dd5-434c-896e-27bb53a091ba",
-        "name": "Elevator",
+        "name": "Elevator 1",
         "area": 28147.83,
         "status": "active",
         "wall_ids": [
@@ -23793,7 +23793,7 @@
       },
       {
         "id": "51631b4d-b79e-4c48-960f-d3cf7089481e",
-        "name": "Elevator",
+        "name": "Elevator 2",
         "area": 27633.85,
         "status": "active",
         "wall_ids": [
@@ -23826,7 +23826,7 @@
       },
       {
         "id": "d820e128-cdfb-4d8c-bf45-da703ac07b84",
-        "name": "Elevator",
+        "name": "Elevator 4",
         "area": 27481.83,
         "status": "active",
         "wall_ids": [

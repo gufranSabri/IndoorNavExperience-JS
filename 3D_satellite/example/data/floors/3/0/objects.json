@@ -11,6 +11,18 @@
       "label": "East Entrance"
     }
   ],
+  "stairs": [
+    {
+      "x": 5137.965,
+      "y": 3566.9148,
+      "label": "Center Staircase 2"
+    },
+    {
+      "x": 5627.0001,
+      "y": 4942.0962,
+      "label": "Center Staircase"
+    }
+  ],
   "wayfinding-kiosk": [
     {
       "x": 5166.2996,

@@ -23889,7 +23889,7 @@
       },
       {
         "id": "0730d3b0-df6f-4ece-989c-2a5456a8fe01",
-        "name": "Elevator",
+        "name": "Elevator 1",
         "area": 32990.07,
         "status": "active",
         "wall_ids": [
@@ -23922,7 +23922,7 @@
       },
       {
         "id": "9a69d43a-1ffa-4414-935d-af607420a12e",
-        "name": "Elevator",
+        "name": "Elevator 3",
         "area": 32737.91,
         "status": "active",
         "wall_ids": [
@@ -23955,7 +23955,7 @@
       },
       {
         "id": "2dbfbe25-7107-4e4e-96b8-0d30be3b7640",
-        "name": "Elevator",
+        "name": "Elevator 2",
         "area": 32100.56,
         "status": "active",
         "wall_ids": [
@@ -23988,7 +23988,7 @@
       },
       {
         "id": "c5b65c67-57a6-46aa-a853-c16ed9e0276c",
-        "name": "Elevator",
+        "name": "Elevator 4",
         "area": 31673.77,
         "status": "active",
         "wall_ids": [
