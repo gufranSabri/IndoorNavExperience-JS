@@ -19401,6 +19401,18 @@
           2387.7299
         ],
         "type": "normal"
+      },
+      {
+        "wall_id": "a83a9697-ba05-447e-ae24-d183a40e07c1",
+        "start": [
+          5802.5966,
+          2116.2268
+        ],
+        "end": [
+          5802.5309,
+          2258.7515
+        ],
+        "type": "normal"
       }
     ],
     "rooms": [
@@ -19700,7 +19712,7 @@
       {
         "id": "66a563b0-964f-41e8-9e0e-b59f77b506a5",
         "name": "Room 2",
-        "area": 7120594.28,
+        "area": 5742817.48,
         "status": "active",
         "wall_ids": [
           "5a8e0a2e-5201-4d65-9444-a570e92fc3d5",
@@ -20453,7 +20465,7 @@
       {
         "id": "9b23f74d-1e2c-4f53-84ff-e22c490f77cf",
         "name": "Room 6",
-        "area": 800652.07,
+        "area": 637326.85,
         "status": "active",
         "wall_ids": [
           "dd6148bd-6999-48bc-9629-3a9c135a591a",
@@ -20901,7 +20913,7 @@
         ],
         "category": "floor_space",
         "attributes": [],
-        "navigable": true
+        "navigable": false
       },
       {
         "id": "c9dff901-a31d-4a0c-9d6a-789f8ec9e6f2",
@@ -21539,7 +21551,7 @@
       {
         "id": "8b7e784c-0c18-4e8d-8184-4f5c649d9a27",
         "name": "Room 22",
-        "area": 164842.52,
+        "area": 137449.51,
         "status": "active",
         "wall_ids": [
           "0094a316-dae0-474e-8e51-7280cefc008e",
