@@ -46,7 +46,8 @@
           "Name": "Floor 1",
           "FloorNumber": 2,
           "Mapped": false,
-          "LastModifiedUtc": "2026-11-24T09:02:59.6Z"
+          "MetersPerPixel": 0.017375786606555838,
+          "LastModifiedUtc": "2026-11-25T04:34:38.406311Z"
         },
         {
           "Id": 2,

@@ -23,9 +23,19 @@
   ],
   "wayfinding-kiosk": [
     {
+      "x": 1561.1257,
+      "y": 3550.6823,
+      "label": "Kiosk"
+    },
+    {
+      "x": 3550.601,
+      "y": 5473.204,
+      "label": "Kiosk"
+    },
+    {
       "x": 6338.7358,
       "y": 4655.4149,
-      "label": "Kiosk 1"
+      "label": "Kiosk"
     }
   ]
 }
