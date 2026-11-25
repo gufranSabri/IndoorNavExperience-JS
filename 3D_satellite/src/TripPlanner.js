@@ -1,0 +1,321 @@
+import { icon } from './ui/icons.js';
+import { labelKey } from './core/FloorDataLoader.js';
+import { OBJECT_STYLE, PICKER_CATEGORIES } from './core/constants.js';
+
+const STYLE = `
+.wf-trip, .wf-trip * { box-sizing: border-box; }
+.wf-trip {
+  --text: var(--sat-text, #eef1f5); --muted: var(--sat-muted, #98a2b3); --border: var(--sat-border, rgba(255,255,255,.09));
+  font-family: var(--sat-font, Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif);
+  color: var(--text); position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column;
+  background: radial-gradient(120% 90% at 50% 0%, #17191e 0%, #0e0f13 55%, #08090b 100%);
+  -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+}
+.wf-trip[hidden] { display: none; }
+.wf-trip-header {
+  flex: none; padding: calc(20px + env(safe-area-inset-top)) 20px 14px; max-width: 520px; width: 100%; margin: 0 auto;
+}
+.wf-trip-header h1 { margin: 0 0 14px; font-size: 17px; font-weight: 650; letter-spacing: -0.01em; }
+.wf-trip-fields { display: flex; align-items: stretch; gap: 10px; margin-bottom: 14px; }
+.wf-trip-rail { display: flex; flex-direction: column; align-items: center; padding: 13px 0 11px; width: 16px; flex: none; }
+.wf-trip-from { width: 12px; height: 12px; border-radius: 50%; border: 3px solid #4285f4; background: transparent; }
+.wf-trip-line { flex: 1; width: 0; margin: 4px 0; border-left: 2px dotted rgba(255,255,255,.28); }
+.wf-trip-to { color: #ea4335; display: grid; place-items: center; }
+.wf-trip-inputs { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.wf-trip-input-wrap { position: relative; }
+.wf-trip-input-wrap input {
+  width: 100%; height: 42px; padding: 0 14px; border-radius: 11px; border: 1px solid var(--border);
+  background: rgba(255,255,255,.06); color: var(--text); font: 500 14px/1 inherit; font-family: inherit;
+  outline: none; -webkit-user-select: text; user-select: text;
+}
+.wf-trip-input-wrap input::placeholder { color: var(--muted); }
+.wf-trip-input-wrap input:focus { border-color: #4285f4; }
+.wf-trip-input-wrap.is-active input { border-color: #4285f4; background: rgba(66,133,244,.08); }
+.wf-trip-swap {
+  appearance: none; align-self: center; flex: none; width: 36px; height: 36px; border-radius: 50%; padding: 0; cursor: pointer;
+  border: 1px solid var(--border); background: rgba(255,255,255,.06); color: var(--text); display: grid; place-items: center;
+  transition: background .15s ease, transform .3s ease;
+}
+.wf-trip-swap:hover { background: rgba(255,255,255,.12); }
+.wf-trip-swap:active { transform: rotate(180deg); }
+
+.wf-trip-prefer { display: flex; align-items: center; gap: 8px; margin: 0 0 14px; font-size: 13px; color: var(--muted); cursor: pointer; }
+.wf-trip-prefer input { accent-color: #4285f4; width: 16px; height: 16px; }
+
+.wf-trip-cats { display: flex; gap: 10px; overflow-x: auto; padding: 2px 2px 4px; margin: 0 0 6px; scrollbar-width: none; }
+.wf-trip-cats::-webkit-scrollbar { display: none; }
+.wf-trip-cat {
+  appearance: none; border: 1px solid var(--border); background: rgba(255,255,255,.05); color: var(--text);
+  display: flex; align-items: center; gap: 7px; flex: none; height: 36px; padding: 0 14px 0 10px; border-radius: 999px;
+  font: 600 12.5px/1 inherit; font-family: inherit; cursor: pointer; transition: background .15s ease, border-color .15s ease;
+}
+.wf-trip-cat:hover { background: rgba(255,255,255,.09); }
+.wf-trip-cat.is-active { border-color: #4285f4; background: rgba(66,133,244,.16); }
+.wf-trip-cat-dot { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; background: var(--c); color: #0d0f13; flex: none; }
+
+.wf-trip-filter-bar { display: none; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 12.5px; color: var(--muted); }
+.wf-trip-filter-bar.is-visible { display: flex; }
+.wf-trip-filter-clear {
+  appearance: none; border: 1px solid var(--border); background: rgba(255,255,255,.06); color: var(--text); border-radius: 8px;
+  height: 26px; padding: 0 10px; font: 600 11.5px/1 inherit; font-family: inherit; cursor: pointer;
+}
+.wf-trip-filter-clear:hover { background: rgba(255,255,255,.12); }
+
+.wf-trip-list { flex: 1; min-height: 0; overflow-y: auto; padding: 0 20px calc(20px + env(safe-area-inset-bottom)); max-width: 520px; width: 100%; margin: 0 auto; }
+.wf-trip-group-label {
+  position: sticky; top: 0; z-index: 1; padding: 10px 2px 6px; font-size: 11px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--muted); background: #0e0f13;
+}
+.wf-trip-item {
+  appearance: none; border: 0; background: transparent; color: var(--text); width: 100%; display: flex; align-items: center;
+  gap: 12px; padding: 11px 8px; border-radius: 11px; cursor: pointer; font: 500 14px/1.25 inherit; text-align: left;
+}
+.wf-trip-item:hover { background: rgba(255,255,255,.06); }
+.wf-trip-item-icon { flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--c); color: #0d0f13; }
+.wf-trip-item-body { flex: 1; min-width: 0; }
+.wf-trip-item-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wf-trip-item-sub { display: block; font-size: 12px; color: var(--muted); margin-top: 1px; }
+.wf-trip-empty { padding: 32px 8px; text-align: center; font-size: 13px; color: var(--muted); }
+`;
+
+let styleInjected = false;
+function ensureStyle() {
+  if (styleInjected) return;
+  const el = document.createElement('style');
+  el.textContent = STYLE;
+  document.head.appendChild(el);
+  styleInjected = true;
+}
+
+function groupLabel(node) {
+  if (node.class === 'room') return 'Rooms';
+  if (node.class === 'exits') return 'Entrances & exits';
+  return node.class.charAt(0).toUpperCase() + node.class.slice(1);
+}
+
+function styleFor(node) {
+  if (node.class === 'room') {
+    const cat = PICKER_CATEGORIES.find((c) => c.category === node.category);
+    if (node.profile) return { color: node.profile.tint, icon: node.profile.icon };
+    if (cat) return { color: cat.tint, icon: cat.icon };
+    return { color: '#9aa4b2', icon: 'box' };
+  }
+  return OBJECT_STYLE[node.class] || OBJECT_STYLE.default;
+}
+
+/**
+ * Full-screen trip-setup flow — start / destination as plain text inputs,
+ * a category filter row, and a scrollable all-floors destination list
+ * (grouped by floor, filtered by category then by typed text). Replaces
+ * the old panel-style RouteSelector as the app's entry point.
+ *
+ * `floors` is [{ url, name, nodes }, ...] across every floor of the
+ * building — nodes already deduped/reachable-filtered the way a single
+ * floor's own picker expects (see dedupeNodesByLabel upstream).
+ *
+ * Fires `onPlan({ startFloor, startNode, destFloor, destNode, preferStairs })`
+ * once both a start and a destination are chosen.
+ */
+export class TripPlanner {
+  constructor(container, { floors, defaultStartNode = null } = {}) {
+    ensureStyle();
+    this.container = container;
+    this.floors = floors;
+    this._activeField = null; // 'start' | 'dest' | null (null = fields collapsed, nothing being edited)
+    this._query = '';
+    this._category = null;
+    this.startSelection = defaultStartNode;
+    this.destSelection = null;
+
+    this.root = document.createElement('div');
+    this.root.className = 'wf-trip';
+    this.root.hidden = true;
+    this.root.innerHTML = `
+      <div class="wf-trip-header">
+        <h1>Where are you headed?</h1>
+        <div class="wf-trip-fields">
+          <div class="wf-trip-rail"><span class="wf-trip-from"></span><span class="wf-trip-line"></span><span class="wf-trip-to">${icon('pin', { size: 18, stroke: 2.2 })}</span></div>
+          <div class="wf-trip-inputs">
+            <div class="wf-trip-input-wrap" data-role="start-wrap"><input type="text" data-role="start-input" placeholder="Choose starting point" autocomplete="off" aria-label="Start" /></div>
+            <div class="wf-trip-input-wrap" data-role="dest-wrap"><input type="text" data-role="dest-input" placeholder="Choose destination" autocomplete="off" aria-label="Destination" /></div>
+          </div>
+          <button type="button" class="wf-trip-swap" title="Swap start and destination" aria-label="Swap start and destination">${icon('swap', { size: 17, stroke: 2.2 })}</button>
+        </div>
+        <label class="wf-trip-prefer"><input type="checkbox" data-role="prefer-stairs" /> Prefer stairs over elevators</label>
+        <div class="wf-trip-cats" data-role="cats"></div>
+        <div class="wf-trip-filter-bar" data-role="filter-bar"><span data-role="filter-text"></span><button type="button" class="wf-trip-filter-clear" data-role="filter-clear">Clear filter</button></div>
+      </div>
+      <div class="wf-trip-list" data-role="list"></div>`;
+    container.appendChild(this.root);
+
+    this.startInput = this.root.querySelector('[data-role="start-input"]');
+    this.destInput = this.root.querySelector('[data-role="dest-input"]');
+    this.startWrap = this.root.querySelector('[data-role="start-wrap"]');
+    this.destWrap = this.root.querySelector('[data-role="dest-wrap"]');
+    this.preferStairsInput = this.root.querySelector('[data-role="prefer-stairs"]');
+    this.catsEl = this.root.querySelector('[data-role="cats"]');
+    this.filterBarEl = this.root.querySelector('[data-role="filter-bar"]');
+    this.filterTextEl = this.root.querySelector('[data-role="filter-text"]');
+    this.listEl = this.root.querySelector('[data-role="list"]');
+
+    if (defaultStartNode) this.startInput.value = defaultStartNode.node.label;
+
+    this._buildCategoryRow();
+    this._renderList();
+
+    this.startInput.addEventListener('focus', () => this._setActiveField('start'));
+    this.destInput.addEventListener('focus', () => this._setActiveField('dest'));
+    this.startInput.addEventListener('input', () => { this._query = this.startInput.value; this._renderList(); });
+    this.destInput.addEventListener('input', () => { this._query = this.destInput.value; this._renderList(); });
+    this.root.querySelector('[data-role="filter-clear"]').addEventListener('click', () => this._setCategory(null));
+    this.root.querySelector('.wf-trip-swap').addEventListener('click', () => this._swap());
+  }
+
+  /** `node` is { floor, node } or null — kept separate from the text input so clearing/retyping text never loses the resolved selection until a NEW one is picked. */
+  _setActiveField(field) {
+    this._activeField = field;
+    this.startWrap.classList.toggle('is-active', field === 'start');
+    this.destWrap.classList.toggle('is-active', field === 'dest');
+    this._query = (field === 'start' ? this.startInput.value : this.destInput.value) || '';
+    this._renderList();
+  }
+
+  _swap() {
+    const a = this.startSelection;
+    this.startSelection = this.destSelection;
+    this.destSelection = a;
+    this.startInput.value = this.startSelection ? this.startSelection.node.label : '';
+    this.destInput.value = this.destSelection ? this.destSelection.node.label : '';
+  }
+
+  _buildCategoryRow() {
+    const buckets = new Map();
+    for (const floor of this.floors) {
+      for (const node of floor.nodes) {
+        const cat = node.class === 'room' && PICKER_CATEGORIES.find((c) => c.category === node.category);
+        if (!cat) continue;
+        if (!buckets.has(cat.category)) buckets.set(cat.category, cat);
+      }
+    }
+    this.catsEl.innerHTML = '';
+    for (const cat of PICKER_CATEGORIES.filter((c) => buckets.has(c.category))) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'wf-trip-cat';
+      btn.dataset.category = cat.category;
+      btn.innerHTML = `<span class="wf-trip-cat-dot" style="--c:${cat.tint}">${icon(cat.icon, { size: 12, stroke: 2.4 })}</span>${cat.label}`;
+      btn.addEventListener('click', () => this._setCategory(this._category === cat.category ? null : cat.category));
+      this.catsEl.appendChild(btn);
+    }
+  }
+
+  _setCategory(category) {
+    this._category = category;
+    this.catsEl.querySelectorAll('.wf-trip-cat').forEach((b) => b.classList.toggle('is-active', b.dataset.category === category));
+    this.filterBarEl.classList.toggle('is-visible', !!category);
+    if (category) {
+      const cat = PICKER_CATEGORIES.find((c) => c.category === category);
+      this.filterTextEl.textContent = `Filtering by ${cat.label}`;
+    }
+    this._renderList();
+  }
+
+  // Category filter applies first, then the typed text narrows what's left — per spec.
+  _renderList() {
+    const query = labelKey(this._query);
+    this.listEl.innerHTML = '';
+    let any = false;
+    for (const floor of this.floors) {
+      const items = floor.nodes.filter((n) => {
+        if (this._category && !(n.class === 'room' && n.category === this._category)) return false;
+        if (query && !labelKey(n.label).includes(query)) return false;
+        return true;
+      });
+      if (!items.length) continue;
+      any = true;
+      const groupEl = document.createElement('div');
+      groupEl.className = 'wf-trip-group-label';
+      groupEl.textContent = floor.name;
+      this.listEl.appendChild(groupEl);
+      for (const node of items) {
+        const style = styleFor(node);
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'wf-trip-item';
+        item.innerHTML = `<span class="wf-trip-item-icon" style="--c:${style.color}">${icon(style.icon, { size: 16, stroke: 2.2 })}</span>
+          <span class="wf-trip-item-body"><span class="wf-trip-item-name">${node.label}</span><span class="wf-trip-item-sub">${groupLabel(node)} · ${floor.name}</span></span>`;
+        item.addEventListener('click', () => this._pick(floor, node));
+        this.listEl.appendChild(item);
+      }
+    }
+    if (!any) this.listEl.innerHTML = '<div class="wf-trip-empty">No matching places</div>';
+  }
+
+  _pick(floor, node) {
+    const selection = { floor, node };
+    const field = this._activeField || 'dest'; // no field focused yet (fresh open) — a tap picks the destination, the common case
+    if (field === 'start') {
+      this.startSelection = selection;
+      this.startInput.value = node.label;
+      if (this.destSelection) {
+        // Destination was already picked (the user came back to change the
+        // start) — finish right away instead of redirecting them into the
+        // destination picker again.
+        this._activeField = null;
+        this.startInput.blur();
+        this._maybeFinish();
+      } else {
+        this._setActiveField('dest');
+        this.destInput.focus();
+      }
+    } else {
+      this.destSelection = selection;
+      this.destInput.value = node.label;
+      this._activeField = null;
+      this.destInput.blur();
+      this._maybeFinish();
+    }
+  }
+
+  _maybeFinish() {
+    if (!this.startSelection || !this.destSelection) return;
+    this.onPlan?.({
+      startFloor: this.startSelection.floor,
+      startNode: this.startSelection.node,
+      destFloor: this.destSelection.floor,
+      destNode: this.destSelection.node,
+      preferStairs: this.preferStairsInput.checked,
+    });
+  }
+
+  /**
+   * Clears the destination and any active filter/search, optionally setting
+   * a new start (e.g. "you just arrived here, plan the next trip from
+   * there"). Used between trips instead of leaving a prior pick's category
+   * filter or search text stuck on screen for an unrelated new trip.
+   */
+  reset({ start = null } = {}) {
+    this.startSelection = start;
+    this.startInput.value = start ? start.node.label : '';
+    this.destSelection = null;
+    this.destInput.value = '';
+    this._setCategory(null);
+    this._query = '';
+    this._activeField = null;
+    this.startWrap.classList.remove('is-active');
+    this.destWrap.classList.remove('is-active');
+    this._renderList();
+  }
+
+  show() {
+    this.root.hidden = false;
+  }
+
+  hide() {
+    this.root.hidden = true;
+  }
+
+  dispose() {
+    this.root.remove();
+  }
+}

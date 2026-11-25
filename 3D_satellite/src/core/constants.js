@@ -222,6 +222,7 @@ export const CAMERA_MIN_DISTANCE = 7; // meters
 export const CAMERA_MAX_DISTANCE_FACTOR = 1.6; // x the "fit whole building" distance
 export const LABEL_ZOOM_DISTANCE_FACTOR = 0.93; // labels appear once closer than this x the fit distance
 export const INTRO_ZOOM_DISTANCE_FACTOR = 0.8; // where the intro flight settles — inside LABEL_ZOOM_DISTANCE_FACTOR so labels are already on by the time it ends
+export const USER_LOCATE_ZOOM_DISTANCE_FACTOR = 0.4; // the "center on me" button's zoom — closer than the intro view, like a "my location" button on a consumer map app
 
 // ---- route ----------------------------------------------------------
 export const ROUTE_WORLD_WIDTH = 1.5; // meters, line width at a comfortable zoom

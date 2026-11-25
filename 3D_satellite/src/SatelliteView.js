@@ -21,6 +21,7 @@ import {
   CAMERA_MAX_DISTANCE_FACTOR,
   LABEL_ZOOM_DISTANCE_FACTOR,
   INTRO_ZOOM_DISTANCE_FACTOR,
+  USER_LOCATE_ZOOM_DISTANCE_FACTOR,
   PLAYBACK_MPS,
   WALK_MPS,
   GLASS_OPACITY,
@@ -417,13 +418,16 @@ export class SatelliteView {
     }
   }
 
-  // The floating button under the 2D/3D toggle: drop into 2D (top-down) and
-  // pan to the "you are here" dot. Falls back to the building's center if no
-  // user location has been set yet.
+  // The floating button under the 2D/3D toggle: drop into 2D (top-down),
+  // pan to the "you are here" dot, AND zoom in on it — a plain pan with no
+  // zoom change left the view "centered on the map" rather than on the
+  // user if they were already zoomed out. Falls back to the building's
+  // center (at the same close zoom) if no user location has been set yet.
   centerOnUser() {
     if (!this.building) return;
     const p = this.userLocation || this.fitCenter;
-    this.controls.flyTo({ x: p.x, z: p.z, pitch: 0 }, 1.2);
+    const distance = Math.max(CAMERA_MIN_DISTANCE, this.fitDistance * USER_LOCATE_ZOOM_DISTANCE_FACTOR);
+    this.controls.flyTo({ x: p.x, z: p.z, distance, pitch: 0 }, 1.2);
   }
 
   // The floating button under zoom +/-: forces 2D (top-down) and steps the

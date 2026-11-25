@@ -31,6 +31,7 @@ const PATHS = {
   back: '<path d="m15 18-6-6 6-6"/>',
   rotate: '<path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/>',
   chevron: '<path d="m6 9 6 6 6-6"/>',
+  skip: '<path d="M5 4v16l10-8z" fill="currentColor" stroke="none"/><path d="M19 5v14"/>',
 };
 
 export function icon(name, { size = 16, stroke = 2 } = {}) {

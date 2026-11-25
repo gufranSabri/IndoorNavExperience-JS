@@ -103,7 +103,7 @@ export const SATELLITE_STYLE = `
 
 @media (max-width: 560px) {
   .sat-btn { width: 40px; height: 40px; }
-  .sat-controls { right: 12px; bottom: calc(96px + env(safe-area-inset-bottom)); }
+  .sat-controls { right: 12px; bottom: calc(176px + env(safe-area-inset-bottom)); }
 }
 `;
 
