@@ -208,14 +208,25 @@
       }));
     }
 
+    // Same breakpoint as TripPlanner.js / ItineraryView.js's own CSS: at or
+    // above this width they dock as a left sidebar instead of taking over
+    // the whole screen, and the map stays loaded and visible behind/beside
+    // them rather than being hidden while planning.
+    const wideQuery = window.matchMedia('(min-width: 561px)');
+    const SIDEBAR_WIDTH = 400;
+
     async function initMap(buildingId) {
       // Everything talks through DOM events on this one element.
       const mapEl = document.getElementById('map');
       const tripProgressRoot = document.getElementById('trip-progress-root');
       // Keep the floating UI out of the way when framing the building / a route.
       // Two stacked pills (TripProgress.js) sit bottom-center; the map
-      // controls are back at bottom-right (styles.js's own default).
-      const getInsets = () => ({ bottom: 168, left: 16, right: 70 });
+      // controls are back at bottom-right (styles.js's own default). On wide
+      // screens the sidebar also reserves its own width on the left.
+      const getInsets = () => ({
+        bottom: 168, right: 70,
+        left: wideQuery.matches ? SIDEBAR_WIDTH + 16 : 16,
+      });
       // QR code of this page's URL (building and all). If you're browsing via localhost, a phone can't
       // reach it — set PHONE_URL to an address it can (LAN IP or deployed URL), e.g. 'http://192.168.1.20:8000/'.
       // When hosted online, leave it null: the QR then encodes the site's own address.
@@ -251,8 +262,26 @@
         }
       }
 
+      // On a wide screen the map is always visible beside the sidebar (see
+      // TripPlanner.js / ItineraryView.js's own min-width: 561px rule) — only
+      // a narrow screen's full-screen planner/itinerary needs to hide it.
       const chromeEls = [mapEl, document.getElementById('qr-card')];
-      chromeEls.forEach((el) => { if (el) el.style.visibility = 'hidden'; });
+      let mapWantsVisible = false; // the LAST intent, independent of which breakpoint applied it
+      function setMapVisible(visible) {
+        mapWantsVisible = visible;
+        if (visible || !wideQuery.matches) {
+          chromeEls.forEach((el) => { if (el) el.style.visibility = visible ? '' : 'hidden'; });
+        }
+      }
+      // Crossing the breakpoint while a full-screen planner/itinerary (narrow)
+      // or the sidebar (wide) is already open must re-apply that same intent
+      // under the new layout — otherwise going narrow->wide mid-session could
+      // leave the map hidden with nothing full-screen left covering it.
+      wideQuery.addEventListener('change', () => {
+        setMapVisible(mapWantsVisible);
+        view.refreshInsets();
+      });
+      setMapVisible(false);
 
       const allFloors = await loadAllFloors(FLOORS);
       const defaultFloorIndex = 0;
@@ -261,6 +290,17 @@
       const defaultStartNode = defaultStartId
         ? { floor: allFloors[defaultFloorIndex], node: allFloors[defaultFloorIndex].nodes.find((n) => n.id === defaultStartId) }
         : null;
+
+      // Wide screens show the map immediately (it sits beside the sidebar,
+      // never behind a full-screen takeover) — narrow screens still wait
+      // until a trip actually starts (see tripPlanner.onPlan below).
+      let loadedFloor = null;
+      if (wideQuery.matches) {
+        await showFloor(allFloors[defaultFloorIndex]);
+        loadedFloor = allFloors[defaultFloorIndex];
+        if (defaultStartNode) view.setUserNode(defaultStartNode.node.id);
+        setMapVisible(true);
+      }
 
       const disclaimer = new DisclaimerModal(document.getElementById('disclaimer-root'));
       const tripPlanner = new TripPlanner(document.getElementById('trip-planner-root'), {
@@ -274,9 +314,11 @@
       // single-floor route machinery (view.setRoute / view.seek) per leg,
       // switching floors between legs, and asking for arrival confirmation
       // at each leg's end (see TripProgress's onSeek/onArrive/onBack
-      // callbacks below). This is the only place that advances a trip. ----
+      // callbacks below). This is the only place that advances a trip.
+      // `loadedFloor` (declared above, with the wide-screen immediate load)
+      // tracks whichever floor's data view.loadFloor() last resolved —
+      // avoids reloading the same floor between two legs that share it. ----
       let legs = null;
-      let loadedFloor = null; // whichever floor's data view.loadFloor() last resolved — avoids reloading the same floor between two legs that share it
       let lastItineraryArgs = null; // re-shown by Cancel (TripProgress) without re-planning
 
       async function enterLeg(index) {
@@ -297,7 +339,7 @@
       progress.onCancel = () => {
         progress.hide();
         view.clearRoute();
-        chromeEls.forEach((el) => { if (el) el.style.visibility = 'hidden'; });
+        setMapVisible(false);
         itinerary.show(lastItineraryArgs);
       };
       progress.onArrive = (leg, index) => {
@@ -307,7 +349,7 @@
           // Final destination confirmed — back to planning, starting from here.
           progress.hide();
           view.clearRoute();
-          chromeEls.forEach((el) => { if (el) el.style.visibility = 'hidden'; });
+          setMapVisible(false);
           tripPlanner.reset({ start: { floor: leg.floor, node: leg.toNode } });
           tripPlanner.show();
         }
@@ -322,13 +364,15 @@
           itinerary.hide();
           legs = planToLegs(plan, { startNode, destNode, startFloor, destFloor });
           if (!legs || !legs.length) { // same node picked twice, or no plan — just reveal the map as-is
-            chromeEls.forEach((el) => { if (el) el.style.visibility = ''; });
-            await showFloor(startFloor);
-            loadedFloor = startFloor;
+            setMapVisible(true);
+            if (startFloor !== loadedFloor) {
+              await showFloor(startFloor);
+              loadedFloor = startFloor;
+            }
             if (startNode) view.setUserNode(startNode.id);
             return;
           }
-          chromeEls.forEach((el) => { if (el) el.style.visibility = ''; });
+          setMapVisible(true);
           progress.setLegs(legs);
           progress.show();
           await enterLeg(0);

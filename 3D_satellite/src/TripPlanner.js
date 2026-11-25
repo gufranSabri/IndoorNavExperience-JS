@@ -63,9 +63,19 @@ const STYLE = `
 
 .wf-trip-list { flex: 1; min-height: 0; overflow-y: auto; padding: 0 20px calc(20px + env(safe-area-inset-bottom)); max-width: 520px; width: 100%; margin: 0 auto; }
 .wf-trip-group-label {
-  position: sticky; top: 0; z-index: 1; padding: 10px 2px 6px; font-size: 11px; font-weight: 700; letter-spacing: .08em;
-  text-transform: uppercase; color: var(--muted); background: #0e0f13;
+  appearance: none; border: 0; width: 100%; position: sticky; top: 0; z-index: 1; cursor: pointer;
+  display: flex; align-items: center; gap: 8px; padding: 10px 4px; margin-top: 2px;
+  font: 700 11px/1 inherit; font-family: inherit; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--muted); background: #0e0f13; transition: color .15s ease;
 }
+.wf-trip-group-label:hover { color: var(--text); }
+.wf-trip-group-label span:first-child { flex: 1; text-align: left; }
+.wf-trip-group-count {
+  flex: none; font-size: 10.5px; font-weight: 700; letter-spacing: 0; color: var(--muted);
+  background: rgba(255,255,255,.08); border-radius: 999px; padding: 2px 7px; min-width: 20px; text-align: center;
+}
+.wf-trip-group-label svg { flex: none; transition: transform .15s ease; }
+.wf-trip-group-label.is-expanded svg { transform: rotate(180deg); }
 .wf-trip-item {
   appearance: none; border: 0; background: transparent; color: var(--text); width: 100%; display: flex; align-items: center;
   gap: 12px; padding: 11px 8px; border-radius: 11px; cursor: pointer; font: 500 14px/1.25 inherit; text-align: left;
@@ -76,6 +86,17 @@ const STYLE = `
 .wf-trip-item-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wf-trip-item-sub { display: block; font-size: 12px; color: var(--muted); margin-top: 1px; }
 .wf-trip-empty { padding: 32px 8px; text-align: center; font-size: 13px; color: var(--muted); }
+
+/* ---- wide screens: a docked left sidebar instead of a full-screen takeover,
+   so the map stays visible and interactive beside it (see index.html's own
+   width check, which also keeps the map loaded rather than hiding it). ---- */
+@media (min-width: 561px) {
+  .wf-trip {
+    inset: auto; left: 0; top: 0; bottom: 0; width: 400px;
+    border-right: 1px solid var(--border); box-shadow: 0 0 40px rgba(0,0,0,.35);
+  }
+  .wf-trip-header, .wf-trip-list { max-width: none; }
+}
 `;
 
 let styleInjected = false;
@@ -124,6 +145,13 @@ export class TripPlanner {
     this._activeField = null; // 'start' | 'dest' | null (null = fields collapsed, nothing being edited)
     this._query = '';
     this._category = null;
+    // Per-floor manual expand/collapse (by floor name), ignored while a
+    // query/category filter is active — a filtered floor always shows its
+    // matches. Reset to empty (= everything collapsed) whenever the query
+    // goes back to empty, so a manual expand never lingers past the search
+    // that prompted it — see _renderList.
+    this._expandedFloors = new Set();
+    this._wasFiltering = false; // tracks the filtering->not-filtering edge, so clearing the search only resets _expandedFloors ONCE, not on every render while already empty (which would also wipe a plain manual toggle's own re-render)
     this.startSelection = defaultStartNode;
     this.destSelection = null;
 
@@ -221,8 +249,15 @@ export class TripPlanner {
   }
 
   // Category filter applies first, then the typed text narrows what's left — per spec.
+  // Each floor is collapsible: collapsed by default, forced open while a
+  // query/category filter is narrowing the list (so filtered matches are
+  // never hidden behind a collapsed header), and otherwise manually
+  // toggled — see this._expandedFloors and the click handler below.
   _renderList() {
     const query = labelKey(this._query);
+    const isFiltering = !!query || !!this._category;
+    if (!isFiltering && this._wasFiltering) this._expandedFloors.clear(); // the search/filter that justified any manual expand just ended — back to all collapsed
+    this._wasFiltering = isFiltering;
     this.listEl.innerHTML = '';
     let any = false;
     for (const floor of this.floors) {
@@ -233,10 +268,19 @@ export class TripPlanner {
       });
       if (!items.length) continue;
       any = true;
-      const groupEl = document.createElement('div');
+      const expanded = isFiltering || this._expandedFloors.has(floor.name);
+      const groupEl = document.createElement('button');
+      groupEl.type = 'button';
       groupEl.className = 'wf-trip-group-label';
-      groupEl.textContent = floor.name;
+      groupEl.innerHTML = `<span>${floor.name}</span><span class="wf-trip-group-count">${items.length}</span>${icon('chevron', { size: 14, stroke: 2.4 })}`;
+      groupEl.classList.toggle('is-expanded', expanded);
+      groupEl.addEventListener('click', () => {
+        if (this._expandedFloors.has(floor.name)) this._expandedFloors.delete(floor.name);
+        else this._expandedFloors.add(floor.name);
+        this._renderList();
+      });
       this.listEl.appendChild(groupEl);
+      if (!expanded) continue;
       for (const node of items) {
         const style = styleFor(node);
         const item = document.createElement('button');

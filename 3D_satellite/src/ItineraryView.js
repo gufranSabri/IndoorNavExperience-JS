@@ -44,6 +44,17 @@ const STYLE = `
 .wf-itin-btn--primary:hover { background: #5a95f5; }
 .wf-itin-btn--ghost { background: rgba(255,255,255,.06); color: var(--text); border: 1px solid var(--border); }
 .wf-itin-btn--ghost:hover { background: rgba(255,255,255,.1); }
+
+/* ---- wide screens: a docked left sidebar instead of a full-screen takeover —
+   same treatment as TripPlanner.js's own, so the two feel like one panel
+   that swaps its content rather than two different kinds of screen. ---- */
+@media (min-width: 561px) {
+  .wf-itin {
+    inset: auto; left: 0; top: 0; bottom: 0; width: 400px;
+    border-right: 1px solid var(--border); box-shadow: 0 0 40px rgba(0,0,0,.35);
+  }
+  .wf-itin-header, .wf-itin-steps, .wf-itin-error, .wf-itin-actions { max-width: none; }
+}
 `;
 
 let styleInjected = false;
