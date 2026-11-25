@@ -1,7 +1,8 @@
 {
   "image": {
     "width": 10000,
-    "height": 7073
+    "height": 7073,
+    "upDirection": "up"
   },
   "scale": {
     "metersPerPixel": 0.013085382118322051
@@ -13433,7 +13434,7 @@
       {
         "id": "a6f07216-0c4e-48e5-9fb0-354f4b9cf8eb",
         "name": "Room 1",
-        "area": 14472653.68,
+        "area": 10755573.57,
         "status": "active",
         "wall_ids": [
           "88a4abd4-41d8-4ab0-b55f-c003ba18a1e1",
@@ -13691,7 +13692,7 @@
       {
         "id": "f65640f7-7d32-4abb-bef6-650814a97e14",
         "name": "Room 2",
-        "area": 2308602.44,
+        "area": 2080473.42,
         "status": "active",
         "wall_ids": [
           "482a6a39-a3e3-451f-9cb6-eb4c78305360",
@@ -14534,7 +14535,7 @@
       {
         "id": "96a77530-fd26-49da-885a-123f641dc923",
         "name": "Room 12",
-        "area": 269831.68,
+        "area": 226972.52,
         "status": "active",
         "wall_ids": [
           "6cc8ae38-c464-4289-a19d-747882a4c6cf",
@@ -14582,7 +14583,7 @@
         ],
         "category": "floor_space",
         "attributes": [],
-        "navigable": true
+        "navigable": false
       },
       {
         "id": "5efc327e-a64e-4e5c-8ac0-1f32efaee867",
@@ -16557,7 +16558,7 @@
         ],
         "category": "elevator",
         "attributes": [],
-        "navigable": true
+        "navigable": false
       },
       {
         "id": "af7ee84a-f3bc-4f6d-9a89-80b77a6597b6",
@@ -16590,7 +16591,7 @@
         ],
         "category": "elevator",
         "attributes": [],
-        "navigable": true
+        "navigable": false
       },
       {
         "id": "e21c81ec-4f6a-4b76-b71f-3625fa14904c",
@@ -16733,7 +16734,7 @@
         ],
         "category": "elevator",
         "attributes": [],
-        "navigable": true
+        "navigable": false
       },
       {
         "id": "243dfd56-effe-4707-ad78-2fe5d30ba60f",
@@ -16771,7 +16772,7 @@
         ],
         "category": "elevator",
         "attributes": [],
-        "navigable": true
+        "navigable": false
       },
       {
         "id": "6838457b-f96b-4e9d-8943-b9d41779bed5",
@@ -17031,7 +17032,7 @@
         ],
         "category": "work_space",
         "attributes": [],
-        "navigable": true
+        "navigable": false
       },
       {
         "id": "efb1a466-c44d-43b4-ad45-e043acb6d975",

@@ -1,7 +1,8 @@
 {
   "image": {
     "width": 10000,
-    "height": 7073
+    "height": 7073,
+    "upDirection": "up"
   },
   "scale": {
     "metersPerPixel": 0.012852311161217588
@@ -17257,7 +17258,7 @@
         "attributes": [
           "toilet"
         ],
-        "navigable": false
+        "navigable": true
       },
       {
         "id": "b9e39b36-5e30-49e7-b118-7b559a089ae7",
@@ -18095,7 +18096,7 @@
           "private",
           "closed"
         ],
-        "navigable": true
+        "navigable": false
       },
       {
         "id": "8f16ff36-8f25-4c11-b70a-5bca62cac16e",
@@ -18131,7 +18132,7 @@
           "private",
           "closed"
         ],
-        "navigable": true
+        "navigable": false
       },
       {
         "id": "16b5b75f-50e4-41a4-873b-59a7de6343c2",
@@ -18167,7 +18168,7 @@
           "private",
           "closed"
         ],
-        "navigable": true
+        "navigable": false
       },
       {
         "id": "cf54cb18-f569-4855-afa5-d69560a4d68b",
@@ -18643,7 +18644,7 @@
         ],
         "category": "elevator",
         "attributes": [],
-        "navigable": true
+        "navigable": false
       },
       {
         "id": "5cb6ebcb-b632-49b1-8222-f558825b6f2d",
@@ -18712,7 +18713,7 @@
         ],
         "category": "elevator",
         "attributes": [],
-        "navigable": true
+        "navigable": false
       },
       {
         "id": "55bf312a-0ec7-4dc0-a7b0-6e2446171dee",
@@ -18784,7 +18785,7 @@
           "private",
           "closed"
         ],
-        "navigable": true
+        "navigable": false
       },
       {
         "id": "33b6c776-9d95-43fe-b570-fcd2282add41",
@@ -18817,7 +18818,7 @@
         ],
         "category": "elevator",
         "attributes": [],
-        "navigable": true
+        "navigable": false
       },
       {
         "id": "0561e3ac-140a-48a6-9b8a-f13e8328a1bd",
@@ -18855,7 +18856,7 @@
         ],
         "category": "elevator",
         "attributes": [],
-        "navigable": true
+        "navigable": false
       },
       {
         "id": "4088bb27-dc93-427f-ba50-7aa227ee41cc",

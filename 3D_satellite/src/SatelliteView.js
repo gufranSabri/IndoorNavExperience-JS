@@ -78,8 +78,10 @@ export class SatelliteView {
     // Returns the pixels of the map covered by floating UI ({top,right,bottom,left}); the
     // camera then frames things in the remaining free area.
     this.getInsets = options.getInsets || null;
-    // options.orientToExit (default true): open the map facing away from the nearest exit.
-    this.orientToExit = options.orientToExit !== false;
+    // options.orientToExit (default false): face away from the nearest exit
+    // when a start point is set, instead of the floor's own upDirection
+    // (set on the Upload page) staying north-up at the top of the screen.
+    this.orientToExit = options.orientToExit === true;
     this.freeExtent = { x: 1, y: 1 };
     ensureSatelliteStyle();
     container.classList.add('sat-root');
@@ -285,7 +287,7 @@ export class SatelliteView {
     this._startBearing = null; // a previous floor's orientation must not carry over
 
     const { boundary } = floorData;
-    this.projector = createProjector(boundary.image, boundary.scale?.metersPerPixel);
+    this.projector = createProjector(boundary.image, boundary.scale?.metersPerPixel, boundary.image?.upDirection);
     this.building = buildBuilding(boundary, this.projector, floorData.objects);
     // The long axis comes from the raw drawn outline: the built (rounded, offset) outline's
     // many arc segments skew the minimum-area rectangle a few degrees off the walls.
@@ -375,8 +377,13 @@ export class SatelliteView {
     this._computeFit();
     const c = this.fitCenter;
     this.controls.set({ x: c.x, z: c.z, distance: this.fitDistance * 1.55, pitch: 0, bearing: -18 * DEG });
+    // Always opens exactly north-up (the floor's own upDirection, set on the
+    // Upload page) rather than _alignedBearing()'s screen-aspect heuristic or
+    // _orientToStart()'s face-away-from-exit bearing - this.orientToExit is
+    // false by default (see the constructor) specifically so _startBearing
+    // never gets set before this first frame.
     this.controls.flyTo(
-      { x: c.x, z: c.z, distance: this.fitDistance * INTRO_ZOOM_DISTANCE_FACTOR, pitch: 0, bearing: this._startBearing ?? this._alignedBearing() ?? 0 },
+      { x: c.x, z: c.z, distance: this.fitDistance * INTRO_ZOOM_DISTANCE_FACTOR, pitch: 0, bearing: this._startBearing ?? 0 },
       2.4
     );
   }

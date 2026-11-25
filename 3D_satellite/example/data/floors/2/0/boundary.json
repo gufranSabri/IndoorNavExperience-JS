@@ -1,7 +1,8 @@
 {
   "image": {
     "width": 1448,
-    "height": 1086
+    "height": 1086,
+    "upDirection": "up"
   },
   "scale": {
     "metersPerPixel": 0.06082725060827251
