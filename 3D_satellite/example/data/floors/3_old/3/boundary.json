@@ -15034,6 +15034,18 @@
           4339.3031
         ],
         "type": "normal"
+      },
+      {
+        "wall_id": "05544280-c837-4ea4-93be-4d102dedf33b",
+        "start": [
+          8896.0351,
+          3468.2974
+        ],
+        "end": [
+          8896.3736,
+          3615.9521
+        ],
+        "type": "normal"
       }
     ],
     "rooms": [
@@ -16428,7 +16440,7 @@
       },
       {
         "id": "e81bd48a-39f2-41cb-87ec-12ee34ee8515",
-        "name": "Room 17",
+        "name": "Male Toilet",
         "area": 179488.38,
         "status": "active",
         "wall_ids": [
