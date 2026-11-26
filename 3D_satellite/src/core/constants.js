@@ -239,3 +239,30 @@ export const ROUTE_CORNER_RADIUS = 3.4; // meters, fillet on every turn
 export const ROUTE_DRAW_MPS = 38; // draw-on animation speed
 export const PLAYBACK_MPS = 3.0; // preview walking speed
 export const WALK_MPS = 1.3; // real walking speed used for the time estimate
+
+// ---- brand wordmark font ----------------------------------------------
+// The Arabic "مسار" in the planner header. To try a font, change BRAND_FONT to one
+// of the names below and reload — TripPlanner loads that family from Google Fonts
+// (needs a network connection; offline it falls back to a system Arabic font).
+// All of these are Google Fonts Arabic faces; `weight` is the weight loaded.
+export const BRAND_FONTS = [
+  { name: 'Aref Ruqaa', weight: 700, note: 'Ruqaa calligraphy, flowing and warm' },
+  { name: 'Aref Ruqaa Ink', weight: 700, note: 'Ruqaa with a brushed-ink texture' },
+  { name: 'Katibeh', weight: 400, note: 'Handwritten-style calligraphy, elegant' },
+  { name: 'Amiri', weight: 700, note: 'Classical Naskh, book-like' },
+  { name: 'Scheherazade New', weight: 700, note: 'Traditional Naskh, formal' },
+  { name: 'Lateef', weight: 700, note: 'Soft, rounded Naskh/Nastaliq feel' },
+  { name: 'Mirza', weight: 700, note: 'Light calligraphic, Nastaliq-flavoured' },
+  { name: 'Reem Kufi', weight: 700, note: 'Geometric Kufi, clean and modern' },
+  { name: 'El Messiri', weight: 700, note: 'Sharp, stylish display' },
+  { name: 'Harmattan', weight: 700, note: 'Compact Naskh, readable' },
+  { name: 'Lalezar', weight: 400, note: 'Bold, chunky display' },
+  { name: 'Rakkas', weight: 400, note: 'Heavy, decorative display' },
+  { name: 'Jomhuria', weight: 400, note: 'Tall, condensed display' },
+  { name: 'Marhey', weight: 700, note: 'Playful, friendly rounded' },
+  { name: 'Blaka', weight: 400, note: 'Bold, brushy and decorative' },
+];
+// export const BRAND_FONT = 'Aref Ruqaa Ink';
+export const BRAND_FONT = BRAND_FONTS[0].name;
+
+// 0 1 7 8 11 14

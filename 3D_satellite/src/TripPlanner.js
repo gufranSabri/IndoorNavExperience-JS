@@ -1,6 +1,6 @@
 import { icon } from './ui/icons.js';
 import { labelKey, nodeName } from './core/FloorDataLoader.js';
-import { OBJECT_STYLE, PICKER_CATEGORIES, PICKER_HIDDEN, pickerCategoryOf } from './core/constants.js';
+import { OBJECT_STYLE, PICKER_CATEGORIES, PICKER_HIDDEN, pickerCategoryOf, BRAND_FONTS, BRAND_FONT } from './core/constants.js';
 
 const STYLE = `
 .wf-trip, .wf-trip * { box-sizing: border-box; }
@@ -61,7 +61,9 @@ const STYLE = `
   animation: wf-trip-logo-in .7s cubic-bezier(.2,.9,.3,1.2) both, wf-trip-logo-glow 4.5s ease-in-out 1s infinite;
 }
 .wf-trip-brand-name {
-  font-size: 23px; font-weight: 750; letter-spacing: -0.02em; line-height: 1;
+  /* Calligraphic Arabic wordmark: no letter-spacing (it would break the joined letters) and a larger size, since Arabic reads smaller. */
+  font-family: var(--wf-brand-font, 'Amiri'), 'Noto Naskh Arabic', 'Geeza Pro', serif;
+  font-size: 34px; font-weight: var(--wf-brand-weight, 700); letter-spacing: 0; line-height: 1.25; padding: 2px 0;
   background: linear-gradient(100deg, #eef1f5 0%, #eef1f5 35%, #7fe3a6 50%, #79c4ff 60%, #eef1f5 75%, #eef1f5 100%);
   background-size: 250% 100%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
   animation: wf-trip-name-in .7s .1s ease-out both, wf-trip-shimmer 6s ease-in-out 1.2s infinite;
@@ -177,6 +179,20 @@ function ensureStyle() {
   styleInjected = true;
 }
 
+// Loads the BRAND_FONT family (constants.js) once and returns its name/weight.
+function ensureBrandFont() {
+  const font = BRAND_FONTS.find((f) => f.name === BRAND_FONT) || BRAND_FONTS[0];
+  const id = `wf-brand-font-${font.name.replace(/\s+/g, '-')}`;
+  if (!document.getElementById(id)) {
+    const link = document.createElement('link');
+    link.id = id;
+    link.rel = 'stylesheet';
+    link.href = `https://fonts.googleapis.com/css2?family=${font.name.replace(/\s+/g, '+')}:wght@${font.weight}&display=swap`;
+    document.head.appendChild(link);
+  }
+  return font;
+}
+
 function styleFor(node) {
   if (node.class === 'room') {
     const cat = pickerCategoryOf(node);
@@ -201,7 +217,7 @@ function styleFor(node) {
  * once both a start and a destination are chosen.
  */
 export class TripPlanner {
-  constructor(container, { floors, defaultStartNode = null, appName = 'Masar', logoUrl = null } = {}) {
+  constructor(container, { floors, defaultStartNode = null, appName = 'Masar', brandName = null, logoUrl = null } = {}) {
     ensureStyle();
     this.container = container;
     this.floors = floors;
@@ -220,10 +236,13 @@ export class TripPlanner {
 
     this.root = document.createElement('div');
     this.root.className = 'wf-trip';
+    const brandFont = ensureBrandFont();
+    this.root.style.setProperty('--wf-brand-font', `'${brandFont.name}'`);
+    this.root.style.setProperty('--wf-brand-weight', String(brandFont.weight));
     this.root.hidden = true;
     this.root.innerHTML = `
       <div class="wf-trip-header">
-        <div class="wf-trip-brand">${logoUrl ? `<img class="wf-trip-logo" src="${logoUrl}" alt="" />` : ''}<span class="wf-trip-brand-name">${appName}</span><button type="button" class="wf-trip-info" data-role="info" aria-label="How to use ${appName}" title="How to use">${icon('info', { size: 19, stroke: 2.2 })}</button></div>
+        <div class="wf-trip-brand">${logoUrl ? `<img class="wf-trip-logo" src="${logoUrl}" alt="" />` : ''}<span class="wf-trip-brand-name"${brandName ? ' lang="ar" dir="rtl"' : ''}>${brandName || appName}</span><button type="button" class="wf-trip-info" data-role="info" aria-label="How to use ${appName}" title="How to use">${icon('info', { size: 19, stroke: 2.2 })}</button></div>
         <h1>Where are you headed?</h1>
         <div class="wf-trip-fields">
           <div class="wf-trip-rail"><span class="wf-trip-from"></span><span class="wf-trip-line"></span><span class="wf-trip-to">${icon('pin', { size: 18, stroke: 2.2 })}</span></div>

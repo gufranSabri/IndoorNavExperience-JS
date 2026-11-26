@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#0b0c0f" />
   <title>Indoor Wayfinding — Satellite</title>
+  <!-- The "مسار" wordmark font is chosen in constants.js (BRAND_FONT) and loaded by TripPlanner. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <style>
     :root {
       --sat-font: Inter, ui-sans-serif, system-ui, -apple-system, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
@@ -336,6 +339,7 @@
         floors: allFloors,
         defaultStartNode,
         appName: 'Masar',
+        brandName: 'مسار', // shown in the header; appName stays for labels
         logoUrl: './assets/logo.png',
       });
       const itinerary = new ItineraryView(document.getElementById('itinerary-root'));
