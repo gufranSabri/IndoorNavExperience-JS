@@ -1,6 +1,6 @@
 import { icon } from './ui/icons.js';
 import { dedupeNodesByLabel, labelKey } from './core/FloorDataLoader.js';
-import { OBJECT_STYLE, PICKER_CATEGORIES } from './core/constants.js';
+import { OBJECT_STYLE, PICKER_CATEGORIES, PICKER_HIDDEN, pickerCategoryOf } from './core/constants.js';
 import {
   FLOOR_LOADED_EVENT,
   ROUTE_CHANGE_EVENT,
@@ -456,16 +456,17 @@ export class RouteSelector {
     const buckets = new Map();
     const other = [];
     for (const node of this.nodes) {
-      const group = node.class === 'room' && PICKER_CATEGORIES.find((g) => g.category === node.category);
+      if (PICKER_HIDDEN(node)) continue;
+      const group = pickerCategoryOf(node);
       if (group) {
         const style = { label: group.label, color: group.tint, icon: group.icon };
-        if (!buckets.has(group.category)) buckets.set(group.category, { style, items: [] });
-        buckets.get(group.category).items.push({ node, style: node.profile ? { label: node.profile.label, color: node.profile.tint, icon: node.profile.icon } : style });
+        if (!buckets.has(group.id)) buckets.set(group.id, { style, items: [] });
+        buckets.get(group.id).items.push({ node, style: node.profile ? { label: node.profile.label, color: node.profile.tint, icon: node.profile.icon } : style });
       } else {
         other.push({ node, style: node.class === 'room' ? { color: '#9aa4b2', icon: 'box' } : OBJECT_STYLE[node.class] || OBJECT_STYLE.default });
       }
     }
-    const ordered = new Map(PICKER_CATEGORIES.filter((g) => buckets.has(g.category)).map((g) => [g.label, buckets.get(g.category)]));
+    const ordered = new Map(PICKER_CATEGORIES.filter((g) => buckets.has(g.id)).map((g) => [g.label, buckets.get(g.id)]));
     if (other.length) ordered.set(OTHER_STYLE.label, { style: OTHER_STYLE, items: other });
 
     this._allItems = [...ordered.values()].flatMap((b) => b.items);

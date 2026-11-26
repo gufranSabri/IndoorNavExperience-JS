@@ -146,14 +146,23 @@ export const ROOM_FALLBACK_PROFILE = P.UNCLASSIFIED;
 // attribute for, e.g. a lobby (a plain floor_space).
 export const ROOM_NAME_ACCENTS = [{ match: /^lobby\b/i, profile: P.LOBBY }];
 
-// Destination picker: one button per room `category`, in this order, then a
-// final "Other" button for every non-room node (see OBJECT_STYLE).
+// Destination picker filters: one button per entry, in this order. `match`
+// takes a route node ({ class, category, profile }) and says whether it belongs.
+// A node can fall in no filter (it is still listed / searchable, just not under
+// a button) — except the `PICKER_HIDDEN` ones, which are never listed at all.
+const isRoom = (n) => n.class === 'room';
 export const PICKER_CATEGORIES = [
-  { category: 'floor_space', label: 'Floor space', icon: 'pin', tint: '#5fcf8a' },
-  { category: 'work_space', label: 'Workspace', icon: 'briefcase', tint: '#6ea8fe' },
-  { category: 'amenities', label: 'Amenities', icon: 'store', tint: '#f472b6' },
-  { category: 'elevator', label: 'Elevator', icon: 'elevator', tint: '#8fb4ff' },
+  { id: 'meeting', label: 'Meeting Rooms', icon: 'presentation', tint: '#b391ff', match: (n) => isRoom(n) && n.profile?.key === P.WORK_MEETING },
+  { id: 'toilets', label: 'Toilets', icon: 'toilet', tint: '#ffb454', match: (n) => isRoom(n) && n.profile?.key === P.TOILET },
+  { id: 'amenities', label: 'Amenities', icon: 'store', tint: '#f472b6', match: (n) => isRoom(n) && n.category === 'amenities' && n.profile?.key !== P.TOILET },
+  { id: 'exits', label: 'Exits', icon: 'exit', tint: '#4ade80', match: (n) => n.class === 'exits' },
 ];
+
+// Never listed or searchable in the destination picker: elevators, stairs, kiosks.
+export const PICKER_HIDDEN = (n) =>
+  (isRoom(n) && (n.category === 'elevator' || n.profile?.key === P.ELEVATOR)) || n.class === 'stairs' || DEFAULT_START.nodeClass.test(n.class);
+
+export const pickerCategoryOf = (node) => PICKER_CATEGORIES.find((c) => c.match(node)) || null;
 
 // Rooms with these ids are never built (the editor's whole-floor "Floor" room
 // would otherwise be one giant box covering everything).

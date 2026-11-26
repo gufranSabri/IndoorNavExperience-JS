@@ -1,6 +1,6 @@
 import { icon } from './ui/icons.js';
 import { labelKey } from './core/FloorDataLoader.js';
-import { OBJECT_STYLE, PICKER_CATEGORIES } from './core/constants.js';
+import { OBJECT_STYLE, PICKER_CATEGORIES, PICKER_HIDDEN, pickerCategoryOf } from './core/constants.js';
 
 const STYLE = `
 .wf-trip, .wf-trip * { box-sizing: border-box; }
@@ -116,7 +116,7 @@ function groupLabel(node) {
 
 function styleFor(node) {
   if (node.class === 'room') {
-    const cat = PICKER_CATEGORIES.find((c) => c.category === node.category);
+    const cat = pickerCategoryOf(node);
     if (node.profile) return { color: node.profile.tint, icon: node.profile.icon };
     if (cat) return { color: cat.tint, icon: cat.icon };
     return { color: '#9aa4b2', icon: 'box' };
@@ -220,19 +220,19 @@ export class TripPlanner {
     const buckets = new Map();
     for (const floor of this.floors) {
       for (const node of floor.nodes) {
-        const cat = node.class === 'room' && PICKER_CATEGORIES.find((c) => c.category === node.category);
+        const cat = pickerCategoryOf(node);
         if (!cat) continue;
-        if (!buckets.has(cat.category)) buckets.set(cat.category, cat);
+        if (!buckets.has(cat.id)) buckets.set(cat.id, cat);
       }
     }
     this.catsEl.innerHTML = '';
-    for (const cat of PICKER_CATEGORIES.filter((c) => buckets.has(c.category))) {
+    for (const cat of PICKER_CATEGORIES.filter((c) => buckets.has(c.id))) {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'wf-trip-cat';
-      btn.dataset.category = cat.category;
+      btn.dataset.category = cat.id;
       btn.innerHTML = `<span class="wf-trip-cat-dot" style="--c:${cat.tint}">${icon(cat.icon, { size: 12, stroke: 2.4 })}</span>${cat.label}`;
-      btn.addEventListener('click', () => this._setCategory(this._category === cat.category ? null : cat.category));
+      btn.addEventListener('click', () => this._setCategory(this._category === cat.id ? null : cat.id));
       this.catsEl.appendChild(btn);
     }
   }
@@ -242,7 +242,7 @@ export class TripPlanner {
     this.catsEl.querySelectorAll('.wf-trip-cat').forEach((b) => b.classList.toggle('is-active', b.dataset.category === category));
     this.filterBarEl.classList.toggle('is-visible', !!category);
     if (category) {
-      const cat = PICKER_CATEGORIES.find((c) => c.category === category);
+      const cat = PICKER_CATEGORIES.find((c) => c.id === category);
       this.filterTextEl.textContent = `Filtering by ${cat.label}`;
     }
     this._renderList();
@@ -260,9 +260,13 @@ export class TripPlanner {
     this._wasFiltering = isFiltering;
     this.listEl.innerHTML = '';
     let any = false;
+    // Picking the start hides the chosen destination, and vice versa.
+    const other = (this._activeField || 'dest') === 'start' ? this.destSelection : this.startSelection;
     for (const floor of this.floors) {
       const items = floor.nodes.filter((n) => {
-        if (this._category && !(n.class === 'room' && n.category === this._category)) return false;
+        if (PICKER_HIDDEN(n)) return false;
+        if (other && other.floor === floor && other.node.id === n.id) return false;
+        if (this._category && pickerCategoryOf(n)?.id !== this._category) return false;
         if (query && !labelKey(n.label).includes(query)) return false;
         return true;
       });
