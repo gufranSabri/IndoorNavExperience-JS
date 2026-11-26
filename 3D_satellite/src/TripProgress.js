@@ -43,52 +43,52 @@ const STYLE = `
 .wf-progress-cancel:hover { background: #e8463a; }
 .wf-progress-cancel:active { background: #c62a1f; }
 
-/* ---- bottom pill: Back · scrubber · Skip ---- */
-.wf-progress-scrub-row { display: flex; align-items: center; gap: 10px; padding: 10px; }
-.wf-progress-side-btn {
-  appearance: none; border: 1px solid var(--border); background: rgba(255,255,255,.08); color: var(--text); flex: none;
-  width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; cursor: pointer;
+/* ---- bottom card: slider row, then Previous / arrived buttons ---- */
+.wf-progress-card { border-radius: 22px; padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 10px; }
+.wf-progress-caption { text-align: center; font-size: 12px; font-weight: 600; letter-spacing: .01em; color: var(--muted); }
+
+/* The whole 52px-tall track is the drag target (see the pointer handlers in the
+   class): pressing anywhere grabs the handle and moves it there. The handle's
+   half-width equals the rail inset, so it never pokes out of the card. */
+.wf-progress-track { position: relative; height: 52px; cursor: grab; touch-action: none; outline: none; }
+.wf-progress-track.is-dragging { cursor: grabbing; }
+.wf-progress-track:focus-visible .wf-progress-thumb { box-shadow: 0 0 0 3px rgba(66,133,244,.7), 0 2px 10px rgba(0,0,0,.55); }
+.wf-progress-rail {
+  position: absolute; left: 20px; right: 20px; top: 50%; height: 12px; margin-top: -6px; border-radius: 7px;
+  background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.08); overflow: hidden; pointer-events: none;
+}
+.wf-progress-fill { height: 100%; width: 0; background: linear-gradient(90deg, #4285f4, #6aa4ff); border-radius: 7px; }
+/* A grip-textured knob (three raised bars) so it reads as "drag me". */
+.wf-progress-thumb {
+  position: absolute; top: 50%; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 12px; pointer-events: none;
+  background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,.55), 0 0 0 1px rgba(0,0,0,.04);
+  display: flex; align-items: center; justify-content: center; gap: 4px; transition: transform .08s ease;
+}
+.wf-progress-thumb span { width: 3px; height: 16px; border-radius: 2px; background: rgba(13,15,19,.45); }
+.wf-progress-track.is-dragging .wf-progress-thumb { transform: scale(1.1); }
+
+.wf-progress-actions { display: flex; gap: 10px; }
+.wf-progress-action {
+  appearance: none; border: 0; flex: 1; min-width: 0; height: 48px; border-radius: 14px; padding: 0 12px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px; font: 700 14px/1 inherit; font-family: inherit;
   transition: background .15s ease, transform .1s ease;
 }
-.wf-progress-side-btn:hover:not(:disabled) { background: rgba(255,255,255,.16); }
-.wf-progress-side-btn:active:not(:disabled) { background: rgba(255,255,255,.22); transform: scale(.94); }
-.wf-progress-side-btn:disabled { opacity: .3; cursor: default; }
-/* Back = red; Skip (front) = green with a slow pulsing ring to invite the tap. */
-.wf-progress-side-btn[data-role="back"] { background: #d93025; border-color: transparent; color: #fff; }
-.wf-progress-side-btn[data-role="back"]:hover:not(:disabled) { background: #e8463a; }
-.wf-progress-side-btn[data-role="back"]:active:not(:disabled) { background: #c62a1f; }
-.wf-progress-side-btn[data-role="skip"] { background: #1e9e4a; border-color: transparent; color: #fff; }
-.wf-progress-side-btn[data-role="skip"]:hover:not(:disabled) { background: #25b358; }
-.wf-progress-side-btn[data-role="skip"]:active:not(:disabled) { background: #168a3d; }
-.wf-progress-side-btn[data-role="skip"]:not(:disabled) { animation: wf-progress-pulse 1.8s ease-out infinite; }
+.wf-progress-action svg { flex: none; }
+.wf-progress-action span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wf-progress-action:active:not(:disabled) { transform: scale(.97); }
+.wf-progress-action:disabled { cursor: default; }
+/* Previous = orange; the "I'm here" button = green with a pulsing ring to invite the tap. */
+.wf-progress-action[data-role="back"] { background: #f59e0b; color: #231500; }
+.wf-progress-action[data-role="back"]:hover:not(:disabled) { background: #fbaa2c; }
+/* Disabled keeps the orange identity — a dim amber tint with a soft outline — instead of fading to mud. */
+.wf-progress-action[data-role="back"]:disabled { background: rgba(245,158,11,.14); color: rgba(251,170,44,.6); box-shadow: inset 0 0 0 1px rgba(245,158,11,.3); }
+.wf-progress-action[data-role="skip"] { background: #1e9e4a; color: #fff; animation: wf-progress-pulse 1.8s ease-out infinite; }
+.wf-progress-action[data-role="skip"]:hover { background: #25b358; }
 @keyframes wf-progress-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(52,199,89,.6); transform: scale(1); }
-  50% { transform: scale(1.06); }
-  100% { box-shadow: 0 0 0 14px rgba(52,199,89,0); transform: scale(1); }
+  0% { box-shadow: 0 0 0 0 rgba(52,199,89,.55); }
+  100% { box-shadow: 0 0 0 12px rgba(52,199,89,0); }
 }
-@media (prefers-reduced-motion: reduce) { .wf-progress-side-btn[data-role="skip"]:not(:disabled) { animation: none; } }
-
-.wf-progress-track { position: relative; flex: 1; height: 44px; display: flex; align-items: center; padding: 0 17px; }
-.wf-progress-rail {
-  position: absolute; left: 17px; right: 17px; height: 10px; border-radius: 6px;
-  background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.08); overflow: hidden;
-}
-.wf-progress-fill { height: 100%; width: 0; background: linear-gradient(90deg, #4285f4, #6aa4ff); border-radius: 6px; }
-/* A grip-textured knob (three raised bars), not a round dot — reads as
-   "drag me", the way a DJ-deck crossfader handle does, deliberately unlike a
-   plain playhead so it doesn't suggest anything moves on its own. The track
-   has 17px of side padding (above) so this can never visually reach the
-   pill's rounded cap or the Back/Skip buttons outside it. */
-.wf-progress-thumb {
-  position: absolute; top: 50%; width: 30px; height: 30px; margin-top: -15px; border-radius: 10px;
-  background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,.55), 0 0 0 1px rgba(0,0,0,.04); pointer-events: none;
-  display: flex; align-items: center; justify-content: center; gap: 3.5px;
-  transition: transform .08s ease;
-}
-.wf-progress-thumb span { width: 2.5px; height: 14px; border-radius: 1.5px; background: rgba(13,15,19,.45); }
-.wf-progress-track input[type=range] { position: absolute; inset: 0; width: 100%; margin: 0; opacity: 0; cursor: grab; touch-action: none; }
-.wf-progress-track input[type=range]:active { cursor: grabbing; }
-.wf-progress-track input[type=range]:active ~ .wf-progress-thumb { transform: scale(1.08); }
+@media (prefers-reduced-motion: reduce) { .wf-progress-action[data-role="skip"] { animation: none; } }
 
 /* ---- shared overlay card (full-path modal + arrival modal) ---- */
 .wf-overlay {
@@ -169,6 +169,8 @@ function ensureStyle() {
   styleInjected = true;
 }
 
+const TRACK_INSET = 20; // px; must match .wf-progress-rail's left/right
+
 function legKicker(leg) {
   return leg.kind === 'transporter' ? `Take ${leg.toNode.label}` : `To ${leg.toNode.label}`;
 }
@@ -177,7 +179,7 @@ function legKicker(leg) {
  * The in-map trip-progress UI: two independent floating pills —
  *   1. top-center: the next-step button (tap to see the full path) with a
  *      prominent red Cancel button built into its right end;
- *   2. bottom-center: Back · drag-only progress track · Skip, for the
+ *   2. bottom-center card: a drag track, then Previous step / "I'm here", for the
  *      CURRENT leg only.
  * Plus two on-demand overlays — the full multi-leg path (tap the top pill)
  * and the arrival confirmation shown once the scrubber is released at its
@@ -216,14 +218,16 @@ export class TripProgress {
     this.bottomRoot.className = 'wf-progress-bottom';
     this.bottomRoot.hidden = true;
     this.bottomRoot.innerHTML = `
-      <div class="wf-pill wf-progress-scrub-row">
-        <button type="button" class="wf-progress-side-btn" data-role="back" aria-label="Previous step" title="Previous step">${icon('back', { size: 18, stroke: 2.4 })}</button>
-        <div class="wf-progress-track">
+      <div class="wf-pill wf-progress-card">
+        <div class="wf-progress-caption">Drag to show how far you've walked</div>
+        <div class="wf-progress-track" data-role="track" role="slider" tabindex="0" aria-label="Progress along this step" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
           <div class="wf-progress-rail"><div class="wf-progress-fill" data-role="fill"></div></div>
           <div class="wf-progress-thumb" data-role="thumb"><span></span><span></span><span></span></div>
-          <input type="range" min="0" max="1000" value="0" step="1" aria-label="Drag to track your progress" data-role="range" />
         </div>
-        <button type="button" class="wf-progress-side-btn" data-role="skip" aria-label="Skip to end of this step" title="Skip to end of this step">${icon('skip', { size: 18, stroke: 2.4 })}</button>
+        <div class="wf-progress-actions">
+          <button type="button" class="wf-progress-action" data-role="back">${icon('back', { size: 18, stroke: 2.6 })}<span>Previous step</span></button>
+          <button type="button" class="wf-progress-action" data-role="skip">${icon('check', { size: 18, stroke: 2.8 })}<span data-role="skip-label">I've arrived</span></button>
+        </div>
       </div>`;
     container.appendChild(this.bottomRoot);
 
@@ -232,7 +236,9 @@ export class TripProgress {
     this.nextTitleEl = this.topRoot.querySelector('[data-role="next-title"]');
     this.fillEl = this.bottomRoot.querySelector('[data-role="fill"]');
     this.thumbEl = this.bottomRoot.querySelector('[data-role="thumb"]');
-    this.rangeEl = this.bottomRoot.querySelector('[data-role="range"]');
+    this.trackEl = this.bottomRoot.querySelector('[data-role="track"]');
+    this.skipLabelEl = this.bottomRoot.querySelector('[data-role="skip-label"]');
+    this._progress = 0;
     this.backBtn = this.bottomRoot.querySelector('[data-role="back"]');
     this.skipBtn = this.bottomRoot.querySelector('[data-role="skip"]');
 
@@ -240,15 +246,39 @@ export class TripProgress {
     this.topRoot.querySelector('[data-role="cancel"]').addEventListener('click', () => this.onCancel?.());
     this.backBtn.addEventListener('click', () => this.onBack?.());
     this.skipBtn.addEventListener('click', () => this._skip());
-    this.rangeEl.addEventListener('input', () => {
-      const progress = this.rangeEl.value / 1000;
-      this._render(progress);
-      this.onSeek?.(progress);
+    // Drag handling is ours, not a native range input's: the handle you see is the
+    // thing you drag, and pressing anywhere on the track grabs it.
+    const seekFromPointer = (e) => {
+      const rect = this.trackEl.getBoundingClientRect();
+      const p = Math.min(1, Math.max(0, (e.clientX - rect.left - TRACK_INSET) / (rect.width - 2 * TRACK_INSET)));
+      this._render(p);
+      this.onSeek?.(p);
+    };
+    this.trackEl.addEventListener('pointerdown', (e) => {
+      this.trackEl.setPointerCapture(e.pointerId);
+      this.trackEl.classList.add('is-dragging');
+      this.trackEl.focus({ preventScroll: true });
+      seekFromPointer(e);
+      e.preventDefault();
     });
-    this.rangeEl.addEventListener('change', () => {
-      // Fires on release (mouse up / touch end), not on every drag tick —
-      // exactly the "only when they let go near the end" trigger we want.
-      if (this.rangeEl.value / 1000 >= 0.98) this._promptArrival();
+    this.trackEl.addEventListener('pointermove', (e) => {
+      if (this.trackEl.hasPointerCapture(e.pointerId)) seekFromPointer(e);
+    });
+    const release = (e) => {
+      if (!this.trackEl.classList.contains('is-dragging')) return;
+      this.trackEl.classList.remove('is-dragging');
+      if (e.type === 'pointerup' && this._progress >= 0.98) this._promptArrival(); // only when they let go near the end
+    };
+    this.trackEl.addEventListener('pointerup', release);
+    this.trackEl.addEventListener('pointercancel', release);
+    this.trackEl.addEventListener('keydown', (e) => {
+      const step = { ArrowLeft: -0.05, ArrowDown: -0.05, ArrowRight: 0.05, ArrowUp: 0.05 }[e.key];
+      if (step === undefined && e.key !== 'Home' && e.key !== 'End') return;
+      const p = e.key === 'Home' ? 0 : e.key === 'End' ? 1 : Math.min(1, Math.max(0, this._progress + step));
+      e.preventDefault();
+      this._render(p);
+      this.onSeek?.(p);
+      if (p >= 0.98) this._promptArrival();
     });
     for (const root of [this.topRoot, this.bottomRoot]) {
       root.addEventListener('pointerdown', (e) => e.stopPropagation());
@@ -275,6 +305,8 @@ export class TripProgress {
     this.nextKickerEl.textContent = leg.kind === 'transporter' ? 'Next' : 'Heading to';
     this.nextTitleEl.textContent = legKicker(leg);
     this.backBtn.disabled = this.legIndex === 0;
+    // Names what tapping it means for THIS step — arriving at the stairs/lift isn't arriving.
+    this.skipLabelEl.textContent = leg.kind === 'transporter' ? `I'm at ${leg.toNode.label}` : "I've arrived";
     this._render(0);
     this._renderFullPath();
   }
@@ -282,10 +314,10 @@ export class TripProgress {
   _render(progress) {
     const pct = Math.min(1, Math.max(0, progress)) * 100;
     this.fillEl.style.width = `${pct}%`;
-    this.rangeEl.value = Math.round(progress * 1000);
-    // The track has 17px of inset padding on each side (see .wf-progress-track);
-    // the thumb travels only between those insets, never past them.
-    this.thumbEl.style.left = `calc(17px + (100% - 34px) * ${pct / 100})`;
+    this._progress = pct / 100;
+    this.trackEl.setAttribute('aria-valuenow', String(Math.round(pct)));
+    // The thumb travels only between the rail's insets, never past them.
+    this.thumbEl.style.left = `calc(${TRACK_INSET}px + (100% - ${2 * TRACK_INSET}px) * ${pct / 100})`;
   }
 
   _skip() {
