@@ -1,7 +1,7 @@
 import { icon } from './ui/icons.js';
 import { styleForNode } from './ui/itineraryStyle.js';
 import { formatDistance } from './RouteSelector.js';
-import { nodeName } from './core/FloorDataLoader.js';
+import { mainName } from './core/FloorDataLoader.js';
 
 const STYLE = `
 .wf-progress-top, .wf-progress-top *, .wf-progress-bottom, .wf-progress-bottom * { box-sizing: border-box; }
@@ -173,7 +173,7 @@ function ensureStyle() {
 const TRACK_INSET = 20; // px; must match .wf-progress-rail's left/right
 
 function legKicker(leg) {
-  return leg.kind === 'transporter' ? `Take ${nodeName(leg.toNode)}` : `To ${nodeName(leg.toNode)}`;
+  return leg.kind === 'transporter' ? `Take ${mainName(leg.toNode)}` : `To ${mainName(leg.toNode)}`;
 }
 
 /**
@@ -307,7 +307,7 @@ export class TripProgress {
     this.nextTitleEl.textContent = legKicker(leg);
     this.backBtn.disabled = this.legIndex === 0;
     // Names what tapping it means for THIS step — arriving at the stairs/lift isn't arriving.
-    this.skipLabelEl.textContent = leg.kind === 'transporter' ? `I'm at ${nodeName(leg.toNode)}` : "I've arrived";
+    this.skipLabelEl.textContent = leg.kind === 'transporter' ? `I'm at ${mainName(leg.toNode)}` : "I've arrived";
     this._render(0);
     this._renderFullPath();
   }
@@ -447,7 +447,7 @@ export class TripProgress {
         this.onArrive?.(this.legs[this.legIndex], this.legIndex);
       });
     }
-    this.successOverlay.querySelector('[data-role="text"]').textContent = `You reached ${nodeName(leg.toNode)}.`;
+    this.successOverlay.querySelector('[data-role="text"]').textContent = `You reached ${mainName(leg.toNode)}.`;
     this.successOverlay.classList.add('is-open');
   }
 
@@ -458,8 +458,8 @@ export class TripProgress {
     this.arrivalIconEl.style.setProperty('--c', style.color);
     this.arrivalIconEl.innerHTML = icon(style.icon, { size: 20, stroke: 2.2 });
     this.arrivalTextEl.textContent = leg.kind === 'transporter'
-      ? `Take ${nodeName(leg.toNode)} to ${leg.nextFloor.name}, then tap Yes once you're there.`
-      : `Did you reach ${nodeName(leg.toNode)}?`;
+      ? `Take ${mainName(leg.toNode)} to ${leg.nextFloor.name}, then tap Yes once you're there.`
+      : `Did you reach ${mainName(leg.toNode)}?`;
     this.arrivalOverlay.classList.add('is-open');
   }
 

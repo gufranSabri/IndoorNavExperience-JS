@@ -1,5 +1,5 @@
 import { icon } from './ui/icons.js';
-import { nodeName } from './core/FloorDataLoader.js';
+import { nodeName, mainName, splitName } from './core/FloorDataLoader.js';
 import { styleForNode } from './ui/itineraryStyle.js';
 import { formatDistance, formatDuration } from './RouteSelector.js';
 
@@ -29,6 +29,7 @@ const STYLE = `
 .wf-itin-step-body { flex: 1; min-width: 0; padding-top: 2px; }
 .wf-itin-step-kicker { display: block; font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--c); margin-bottom: 3px; }
 .wf-itin-step-title { font-size: 16.5px; font-weight: 650; letter-spacing: -0.01em; }
+.wf-itin-step-name-sub { font-size: 13px; color: var(--muted); margin-top: 1px; }
 .wf-itin-step-sub { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
 
 .wf-itin-error { margin: 0 20px 14px; padding: 12px 14px; border-radius: 12px; background: rgba(234,67,53,.12); border: 1px solid rgba(234,67,53,.3); color: #ff8a80; font-size: 13px; max-width: 480px; box-sizing: border-box; }
@@ -114,7 +115,7 @@ export class ItineraryView {
     this._startFloor = startFloor;
 
     if (!plan) {
-      this.subtitleEl.textContent = `${nodeName(startNode)} → ${nodeName(destNode)}`;
+      this.subtitleEl.textContent = `${mainName(startNode)} → ${mainName(destNode)}`;
       this.errorEl.hidden = false;
       this.errorEl.textContent = startFloor === destFloor || startFloor.url === destFloor.url
         ? "No walkable route was found between those two places."
@@ -124,14 +125,14 @@ export class ItineraryView {
       this.startBtn.disabled = false;
       if (plan.sameFloor) {
         this.subtitleEl.textContent = `${startFloor.name} · ${formatDistance(plan.route.distance)} · ${formatDuration(plan.route.distance / 1.3)}`;
-        this._renderStep(startNode, 'Start here', nodeName(startNode), null);
-        this._renderStep(destNode, 'Destination', nodeName(destNode), null, { last: true });
+        this._renderStep(startNode, 'Start here', splitName(nodeName(startNode)), null);
+        this._renderStep(destNode, 'Destination', splitName(nodeName(destNode)), null, { last: true });
       } else {
         const totalDistance = plan.legA.route.distance + plan.legB.route.distance;
         this.subtitleEl.textContent = `${startFloor.name} → ${destFloor.name} · ${formatDistance(totalDistance)} · ${formatDuration(totalDistance / 1.3)}`;
-        this._renderStep(startNode, 'Start here', nodeName(startNode), startFloor.name);
+        this._renderStep(startNode, 'Start here', splitName(nodeName(startNode)), startFloor.name);
         this._renderStep(plan.legA.transporter, `Take ${plan.transporterName}`, null, `to ${destFloor.name}`);
-        this._renderStep(destNode, 'Destination', nodeName(destNode), destFloor.name, { last: true });
+        this._renderStep(destNode, 'Destination', splitName(nodeName(destNode)), destFloor.name, { last: true });
       }
     }
 
@@ -139,10 +140,13 @@ export class ItineraryView {
   }
 
   // `kicker` is the small colored label (e.g. "Start here", "Take Elevator 4");
-  // `title` is the big place name below it — omitted when the kicker already
-  // says it all (the transporter step, where repeating the name adds nothing).
+  // `title` is the big place name below it — a string, or a { main, subtexts }
+  // split (see core/FloorDataLoader.js's splitName) when the name carries extra
+  // "Main:Sub:Sub" context — omitted when the kicker already says it all (the
+  // transporter step, where repeating the name adds nothing).
   _renderStep(node, kicker, title, sub, { last = false } = {}) {
     const style = styleForNode(node);
+    const { main, subtexts } = typeof title === 'string' || title == null ? { main: title, subtexts: [] } : title;
     const step = document.createElement('div');
     step.className = 'wf-itin-step';
     step.innerHTML = `
@@ -152,7 +156,8 @@ export class ItineraryView {
       </div>
       <div class="wf-itin-step-body">
         <span class="wf-itin-step-kicker" style="--c:${style.color}">${kicker}</span>
-        ${title ? `<div class="wf-itin-step-title">${title}</div>` : ''}
+        ${main ? `<div class="wf-itin-step-title">${main}</div>` : ''}
+        ${subtexts.length ? `<div class="wf-itin-step-name-sub">${subtexts.join(' · ')}</div>` : ''}
         ${sub ? `<div class="wf-itin-step-sub">${sub}</div>` : ''}
       </div>`;
     if (last) step.querySelector('.wf-itin-step-connector').style.display = 'none';

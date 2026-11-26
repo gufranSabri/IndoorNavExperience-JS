@@ -1,4 +1,4 @@
-import { findRoute, labelKey } from './FloorDataLoader.js';
+import { findRoute, labelKey, splitName } from './FloorDataLoader.js';
 
 // Plans a trip that may cross floors by routing through a same-named
 // transporter (an elevator-category room, or a "stairs" object) that exists
@@ -90,7 +90,7 @@ export function planTrip(startFloor, startNode, destFloor, destNode, { preferSta
   return {
     sameFloor: false,
     legA: { route: bestRoute, transporter: best },
-    transporterName: best.displayLabel || best.label,
+    transporterName: splitName(best.displayLabel || best.label).main,
     legB: { route: legB, transporter: destTransporter },
     destNode,
   };
