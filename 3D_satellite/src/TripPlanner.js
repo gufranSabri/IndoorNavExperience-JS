@@ -161,7 +161,7 @@ const STYLE = `
    width check, which also keeps the map loaded rather than hiding it). ---- */
 @media (min-width: 561px) {
   .wf-trip {
-    inset: auto; left: 0; top: 0; bottom: 0; width: 400px;
+    inset: auto; left: 0; top: 0; bottom: var(--wf-sidebar-bottom, 0px); width: 400px; /* stops above the QR card (index.html) */
     border-right: 1px solid var(--border); box-shadow: 0 0 40px rgba(0,0,0,.35);
   }
   .wf-trip-header, .wf-trip-list { max-width: none; }

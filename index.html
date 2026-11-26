@@ -28,19 +28,41 @@
     }
     #map { position: absolute; inset: 0; }
 
-    /* Desktop-only "open on your phone" card. On phones there's no room for
-       it beside the bottom trip-progress card, so it's hidden there. */
+    /* Desktop-only "open on your phone" card. It sits under the left sidebar,
+       which stops short of it (--wf-sidebar-bottom, read by TripPlanner.js and
+       ItineraryView.js). On phones there's no room, so it's hidden there. */
+    :root { --wf-sidebar-bottom: 0px; --qr-card-height: 200px; }
     .qr-card {
-      position: absolute; z-index: 5; display: none;
-      top: calc(16px + env(safe-area-inset-top)); right: calc(16px + env(safe-area-inset-right));
-      width: 148px; padding: 12px; box-sizing: border-box; border-radius: 20px; text-align: center;
-      color: var(--sat-text); background: var(--sat-glass); border: 1px solid var(--sat-border);
+      position: absolute; z-index: 5; display: none; left: 0; bottom: 0; width: 400px; height: var(--qr-card-height);
+      box-sizing: border-box; padding: 18px 20px calc(18px + env(safe-area-inset-bottom)); align-items: center; gap: 20px;
+      color: var(--sat-text); background: var(--sat-glass); border-top: 1px solid var(--sat-border); border-right: 1px solid var(--sat-border);
       -webkit-backdrop-filter: blur(18px) saturate(1.5); backdrop-filter: blur(18px) saturate(1.5);
-      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 0 40px rgba(0, 0, 0, 0.35);
     }
-    @media (min-width: 561px) { .qr-card { display: block; } }
-    .qr-card svg { display: block; width: 100%; height: auto; border-radius: 10px; }
-    .qr-card p { margin: 10px 0 0; font-size: 11px; line-height: 1.35; color: var(--sat-muted); }
+    @media (min-width: 561px) { :root { --wf-sidebar-bottom: var(--qr-card-height); } .qr-card { display: flex; } }
+    .qr-text { flex: 1; min-width: 0; text-align: left; }
+    .qr-card h2 { margin: 0 0 6px; font-size: 18px; font-weight: 750; letter-spacing: -0.01em; line-height: 1.2; text-wrap: balance; }
+    .qr-card .qr-sub { margin: 0; font-size: 13px; line-height: 1.4; color: var(--sat-muted); }
+    /* Scan frame: white QR, green corner brackets and a sweeping scan line say "point your camera here". */
+    .qr-pulse { position: relative; flex: none; width: 160px; border-radius: 16px; animation: qr-card-pulse 2.6s ease-out infinite; }
+    .qr-frame { position: relative; padding: 8px; border-radius: 16px; background: #fff; overflow: hidden; }
+    .qr-card svg { display: block; width: 100%; height: auto; border-radius: 8px; }
+    .qr-frame i { position: absolute; width: 22px; height: 22px; border: 0 solid #1e9e4a; pointer-events: none; }
+    .qr-frame i:nth-child(1) { top: 5px; left: 5px; border-width: 4px 0 0 4px; border-top-left-radius: 10px; }
+    .qr-frame i:nth-child(2) { top: 5px; right: 5px; border-width: 4px 4px 0 0; border-top-right-radius: 10px; }
+    .qr-frame i:nth-child(3) { bottom: 5px; left: 5px; border-width: 0 0 4px 4px; border-bottom-left-radius: 10px; }
+    .qr-frame i:nth-child(4) { bottom: 5px; right: 5px; border-width: 0 4px 4px 0; border-bottom-right-radius: 10px; }
+    .qr-frame::after {
+      content: ''; position: absolute; left: 8px; right: 8px; top: 8px; height: 3px; border-radius: 2px; pointer-events: none;
+      background: linear-gradient(90deg, transparent, #22c55e, transparent); box-shadow: 0 0 10px 2px rgba(34,197,94,.55);
+      animation: qr-scan 2.4s ease-in-out infinite;
+    }
+    @keyframes qr-scan { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(calc(var(--qr-h, 140px) - 3px)); } }
+    @keyframes qr-card-pulse {
+      0% { box-shadow: 0 0 0 0 rgba(52,199,89,.5); }
+      70%, 100% { box-shadow: 0 0 0 14px rgba(52,199,89,0); }
+    }
+    @media (prefers-reduced-motion: reduce) { .qr-pulse, .qr-frame::after { animation: none; } }
 
     /* Building picker - the root "/" view, shown instead of the map/panel
        until a building is chosen (see ?building= handling below). The
@@ -89,8 +111,11 @@
   <div id="trip-progress-root"></div>
 
   <div class="qr-card" id="qr-card">
-    <div id="qr"></div>
-    <p>Scan to open on your phone</p>
+    <div class="qr-pulse"><div class="qr-frame" id="qr-frame"><div id="qr"></div><i></i><i></i><i></i><i></i></div></div>
+    <div class="qr-text">
+      <h2>Scan to open on your phone</h2>
+      <p class="qr-sub">Point your phone's camera at the code</p>
+    </div>
   </div>
 
   <!--
@@ -238,6 +263,10 @@
       const dim = qr.size + border * 2;
       document.getElementById('qr').innerHTML =
         `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${dim} ${dim}" shape-rendering="crispEdges" role="img" aria-label="QR code to open this page on a phone"><rect width="100%" height="100%" fill="#fff"/><path d="${d}" fill="#000"/></svg>`;
+      // The scan line sweeps the frame's full height (the frame is square; its size is set by the card's width).
+      const qrFrame = document.getElementById('qr-frame');
+      const setQrSweep = () => qrFrame.style.setProperty('--qr-h', `${qrFrame.clientHeight - 16}px`);
+      setQrSweep(); window.addEventListener('resize', setQrSweep);
 
       const view = new SatelliteView(mapEl, { eventTarget: mapEl, getInsets });
       window.addEventListener('resize', () => view.refreshInsets());

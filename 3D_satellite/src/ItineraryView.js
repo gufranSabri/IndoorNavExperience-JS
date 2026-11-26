@@ -54,7 +54,7 @@ const STYLE = `
    that swaps its content rather than two different kinds of screen. ---- */
 @media (min-width: 561px) {
   .wf-itin {
-    inset: auto; left: 0; top: 0; bottom: 0; width: 400px;
+    inset: auto; left: 0; top: 0; bottom: var(--wf-sidebar-bottom, 0px); width: 400px; /* stops above the QR card (index.html) */
     border-right: 1px solid var(--border); box-shadow: 0 0 40px rgba(0,0,0,.35);
   }
   .wf-itin-header, .wf-itin-steps, .wf-itin-error, .wf-itin-actions { max-width: none; }
