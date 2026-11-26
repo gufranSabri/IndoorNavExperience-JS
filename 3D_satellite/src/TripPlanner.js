@@ -20,6 +20,62 @@ const STYLE = `
 .wf-trip-header {
   flex: none; padding: calc(20px + env(safe-area-inset-top)) 20px 14px; max-width: 520px; width: 100%; margin: 0 auto;
 }
+.wf-trip-brand {
+  display: flex; align-items: center; gap: 12px; margin: 0 0 18px; padding: 10px 10px 10px 12px; border-radius: 18px;
+  background: linear-gradient(120deg, rgba(34,170,92,.2), rgba(14,140,214,.2)); border: 1px solid rgba(255,255,255,.1);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 6px 20px rgba(0,0,0,.25);
+}
+.wf-trip-info {
+  appearance: none; margin-left: auto; flex: none; width: 36px; height: 36px; padding: 0; border-radius: 50%; cursor: pointer;
+  border: 1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.08); color: var(--text); display: grid; place-items: center;
+  transition: background .15s ease, transform .1s ease;
+}
+.wf-trip-info:hover { background: rgba(255,255,255,.16); }
+.wf-trip-info:active { transform: scale(.92); }
+
+.wf-trip-help { position: absolute; inset: 0; z-index: 5; display: none; align-items: center; justify-content: center; padding: 20px; }
+.wf-trip-help.is-open { display: flex; }
+.wf-trip-help-backdrop { position: absolute; inset: 0; background: rgba(6,7,9,.7); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
+.wf-trip-help-card {
+  position: relative; width: min(420px, 100%); max-height: 100%; display: flex; flex-direction: column; overflow: hidden;
+  background: rgba(19,21,26,.98); border: 1px solid var(--border); border-radius: 22px; box-shadow: 0 24px 60px rgba(0,0,0,.55);
+}
+.wf-trip-help-head { display: flex; align-items: center; gap: 10px; padding: 16px 12px 8px 20px; flex: none; }
+.wf-trip-help-head h2 { flex: 1; margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+.wf-trip-help-close {
+  appearance: none; border: 0; background: transparent; color: var(--text); width: 34px; height: 34px; border-radius: 50%;
+  display: grid; place-items: center; cursor: pointer;
+}
+.wf-trip-help-close:hover { background: rgba(255,255,255,.08); }
+.wf-trip-help-steps { margin: 0; padding: 6px 20px 20px; list-style: none; overflow-y: auto; counter-reset: step; }
+.wf-trip-help-steps li { position: relative; padding: 10px 0 10px 40px; font-size: 14px; line-height: 1.45; counter-increment: step; }
+.wf-trip-help-steps li::before {
+  content: counter(step); position: absolute; left: 0; top: 9px; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 12.5px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #22aa5c, #0e8cd6);
+}
+.wf-trip-help-steps strong { display: block; font-weight: 650; margin-bottom: 1px; }
+.wf-trip-help-steps span { color: var(--muted); }
+.wf-trip-logo {
+  width: 42px; height: 42px; border-radius: 12px; object-fit: cover; flex: none; display: block;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.12), 0 4px 14px rgba(0,0,0,.4);
+  animation: wf-trip-logo-in .7s cubic-bezier(.2,.9,.3,1.2) both, wf-trip-logo-glow 4.5s ease-in-out 1s infinite;
+}
+.wf-trip-brand-name {
+  font-size: 23px; font-weight: 750; letter-spacing: -0.02em; line-height: 1;
+  background: linear-gradient(100deg, #eef1f5 0%, #eef1f5 35%, #7fe3a6 50%, #79c4ff 60%, #eef1f5 75%, #eef1f5 100%);
+  background-size: 250% 100%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent;
+  animation: wf-trip-name-in .7s .1s ease-out both, wf-trip-shimmer 6s ease-in-out 1.2s infinite;
+}
+@keyframes wf-trip-logo-in { from { opacity: 0; transform: scale(.6) rotate(-12deg); } to { opacity: 1; transform: none; } }
+@keyframes wf-trip-name-in { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: none; } }
+/* A soft green/blue glow breathing behind the logo, and a slow light sweep across the name. */
+@keyframes wf-trip-logo-glow {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(255,255,255,.12), 0 4px 14px rgba(0,0,0,.4), 0 0 0 0 rgba(79,209,165,0); }
+  50% { box-shadow: 0 0 0 1px rgba(255,255,255,.18), 0 4px 14px rgba(0,0,0,.4), 0 0 18px 2px rgba(79,209,165,.35); }
+}
+@keyframes wf-trip-shimmer { 0% { background-position: 100% 0; } 55%, 100% { background-position: -60% 0; } }
+@media (prefers-reduced-motion: reduce) { .wf-trip-logo, .wf-trip-brand-name { animation: none; } }
+.wf-trip.is-kb .wf-trip-brand { display: none; }
 .wf-trip-header h1 { margin: 0 0 14px; font-size: 17px; font-weight: 650; letter-spacing: -0.01em; }
 .wf-trip-fields { display: flex; align-items: stretch; gap: 10px; margin-bottom: 14px; }
 .wf-trip-rail { display: flex; flex-direction: column; align-items: center; padding: 13px 0 11px; width: 16px; flex: none; }
@@ -145,7 +201,7 @@ function styleFor(node) {
  * once both a start and a destination are chosen.
  */
 export class TripPlanner {
-  constructor(container, { floors, defaultStartNode = null } = {}) {
+  constructor(container, { floors, defaultStartNode = null, appName = 'Masar', logoUrl = null } = {}) {
     ensureStyle();
     this.container = container;
     this.floors = floors;
@@ -167,6 +223,7 @@ export class TripPlanner {
     this.root.hidden = true;
     this.root.innerHTML = `
       <div class="wf-trip-header">
+        <div class="wf-trip-brand">${logoUrl ? `<img class="wf-trip-logo" src="${logoUrl}" alt="" />` : ''}<span class="wf-trip-brand-name">${appName}</span><button type="button" class="wf-trip-info" data-role="info" aria-label="How to use ${appName}" title="How to use">${icon('info', { size: 19, stroke: 2.2 })}</button></div>
         <h1>Where are you headed?</h1>
         <div class="wf-trip-fields">
           <div class="wf-trip-rail"><span class="wf-trip-from"></span><span class="wf-trip-line"></span><span class="wf-trip-to">${icon('pin', { size: 18, stroke: 2.2 })}</span></div>
@@ -180,7 +237,20 @@ export class TripPlanner {
         <div class="wf-trip-cats" data-role="cats"></div>
         <div class="wf-trip-filter-bar" data-role="filter-bar"><span data-role="filter-text"></span><button type="button" class="wf-trip-filter-clear" data-role="filter-clear">Clear filter</button></div>
       </div>
-      <div class="wf-trip-list" data-role="list"></div>`;
+      <div class="wf-trip-list" data-role="list"></div>
+      <div class="wf-trip-help" data-role="help" role="dialog" aria-label="How to use ${appName}">
+        <div class="wf-trip-help-backdrop" data-role="help-backdrop"></div>
+        <div class="wf-trip-help-card">
+          <div class="wf-trip-help-head"><h2>How to use ${appName}</h2><button type="button" class="wf-trip-help-close" data-role="help-close" aria-label="Close">${icon('close', { size: 17, stroke: 2.3 })}</button></div>
+          <ol class="wf-trip-help-steps">
+            <li><strong>Set your start and destination</strong><span>Tap a field and type or pick from the list. Your start is filled in for you; use the swap button to flip the two.</span></li>
+            <li><strong>Narrow it down</strong><span>Use the filter chips for meeting rooms, toilets or amenities. "Exit" and "Elevator" always take you to the nearest one.</span></li>
+            <li><strong>Check your route</strong><span>Review the steps and tap Start. Turn on "Prefer stairs" if you'd rather avoid elevators.</span></li>
+            <li><strong>Follow the map</strong><span>The top card shows your next step. Drag the slider to show how far you've walked.</span></li>
+            <li><strong>Confirm as you go</strong><span>Tap the green button when you reach each stop, or "Previous step" to go back. Cancel ends the trip.</span></li>
+          </ol>
+        </div>
+      </div>`;
     container.appendChild(this.root);
 
     this.startInput = this.root.querySelector('[data-role="start-input"]');
@@ -204,6 +274,12 @@ export class TripPlanner {
     this.destInput.addEventListener('input', () => { this.destSelection = null; this._query = this.destInput.value; this._renderList(); });
     this.root.querySelector('[data-role="filter-clear"]').addEventListener('click', () => this._setCategory(null));
     this.root.querySelector('.wf-trip-swap').addEventListener('click', () => this._swap());
+    this.helpEl = this.root.querySelector('[data-role="help"]');
+    const setHelp = (open) => this.helpEl.classList.toggle('is-open', open);
+    this.root.querySelector('[data-role="info"]').addEventListener('click', () => setHelp(true));
+    this.root.querySelector('[data-role="help-close"]').addEventListener('click', () => setHelp(false));
+    this.root.querySelector('[data-role="help-backdrop"]').addEventListener('click', () => setHelp(false));
+    this.root.addEventListener('keydown', (e) => { if (e.key === 'Escape') setHelp(false); });
     this.root.querySelector('[data-role="start-clear"]').addEventListener('click', () => this._clearField('start'));
     this.root.querySelector('[data-role="dest-clear"]').addEventListener('click', () => this._clearField('dest'));
 

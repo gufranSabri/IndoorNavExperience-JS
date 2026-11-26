@@ -306,6 +306,8 @@
       const tripPlanner = new TripPlanner(document.getElementById('trip-planner-root'), {
         floors: allFloors,
         defaultStartNode,
+        appName: 'Masar',
+        logoUrl: './assets/logo.png',
       });
       const itinerary = new ItineraryView(document.getElementById('itinerary-root'));
       const progress = new TripProgress(tripProgressRoot);
@@ -380,6 +382,7 @@
         };
         itinerary.cancelBtn.onclick = () => {
           itinerary.hide();
+          tripPlanner.reset({ start: { floor: startFloor, node: startNode } }); // keep the start, empty the destination
           tripPlanner.show();
         };
       };
