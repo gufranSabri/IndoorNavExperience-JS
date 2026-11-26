@@ -1,5 +1,5 @@
 import { icon } from './ui/icons.js';
-import { labelKey, nodeName } from './core/FloorDataLoader.js';
+import { labelKey, nodeName, mainName, splitName } from './core/FloorDataLoader.js';
 import { OBJECT_STYLE, PICKER_CATEGORIES, PICKER_HIDDEN, pickerCategoryOf, BRAND_FONTS, BRAND_FONT } from './core/constants.js';
 
 const STYLE = `
@@ -156,6 +156,7 @@ const STYLE = `
 .wf-trip-item-icon { flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--c); color: #0d0f13; }
 .wf-trip-item-body { flex: 1; min-width: 0; }
 .wf-trip-item-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wf-trip-item-sub { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--muted); margin-top: 1px; }
 .wf-trip-empty { padding: 32px 8px; text-align: center; font-size: 13px; color: var(--muted); }
 
 /* ---- wide screens: a docked left sidebar instead of a full-screen takeover,
@@ -282,7 +283,7 @@ export class TripPlanner {
     this.filterTextEl = this.root.querySelector('[data-role="filter-text"]');
     this.listEl = this.root.querySelector('[data-role="list"]');
 
-    if (defaultStartNode) this.startInput.value = nodeName(defaultStartNode.node);
+    if (defaultStartNode) this.startInput.value = mainName(defaultStartNode.node);
 
     this._buildCategoryRow();
     this._renderList();
@@ -350,8 +351,8 @@ export class TripPlanner {
     const a = this.startSelection;
     this.startSelection = this.destSelection;
     this.destSelection = a;
-    this.startInput.value = this.startSelection ? nodeName(this.startSelection.node) : '';
-    this.destInput.value = this.destSelection ? nodeName(this.destSelection.node) : '';
+    this.startInput.value = this.startSelection ? mainName(this.startSelection.node) : '';
+    this.destInput.value = this.destSelection ? mainName(this.destSelection.node) : '';
   }
 
   _buildCategoryRow() {
@@ -436,11 +437,12 @@ export class TripPlanner {
       if (!expanded) continue;
       for (const node of items) {
         const style = styleFor(node);
+        const { main, subtexts } = splitName(nodeName(node));
         const item = document.createElement('button');
         item.type = 'button';
         item.className = 'wf-trip-item';
         item.innerHTML = `<span class="wf-trip-item-icon" style="--c:${style.color}">${icon(style.icon, { size: 16, stroke: 2.2 })}</span>
-          <span class="wf-trip-item-body"><span class="wf-trip-item-name">${nodeName(node)}</span></span>`;
+          <span class="wf-trip-item-body"><span class="wf-trip-item-name">${main}</span>${subtexts.length ? `<span class="wf-trip-item-sub">${subtexts.join(' · ')}</span>` : ''}</span>`;
         item.addEventListener('click', () => this._pick(floor, node));
         this.listEl.appendChild(item);
       }
@@ -453,7 +455,7 @@ export class TripPlanner {
     const field = this._activeField || 'dest'; // no field focused yet (fresh open) — a tap picks the destination, the common case
     if (field === 'start') {
       this.startSelection = selection;
-      this.startInput.value = nodeName(node);
+      this.startInput.value = mainName(node);
       if (this.destSelection) {
         // Destination was already picked (the user came back to change the
         // start) — finish right away instead of redirecting them into the
@@ -467,7 +469,7 @@ export class TripPlanner {
       }
     } else {
       this.destSelection = selection;
-      this.destInput.value = nodeName(node);
+      this.destInput.value = mainName(node);
       this._activeField = null;
       this.destInput.blur();
       this._maybeFinish();
@@ -493,7 +495,7 @@ export class TripPlanner {
    */
   reset({ start = null } = {}) {
     this.startSelection = start;
-    this.startInput.value = start ? nodeName(start.node) : '';
+    this.startInput.value = start ? mainName(start.node) : '';
     this.destSelection = null;
     this.destInput.value = '';
     this._setCategory(null);

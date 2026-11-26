@@ -9,22 +9,22 @@
         {
           "Id": 0,
           "BuildingId": 2,
-          "Name": "Ground",
+          "Name": "floor1",
           "FloorNumber": 1,
           "Mapped": false,
           "MetersPerPixel": 0.06082725060827251,
           "UpDirection": "down",
-          "LastModifiedUtc": "2026-11-26T04:38:51.079295Z"
+          "LastModifiedUtc": "2026-11-25T22:14:55.392282Z"
         },
         {
           "Id": 1,
           "BuildingId": 2,
-          "Name": "Floor 1",
+          "Name": "floor2",
           "FloorNumber": 2,
           "Mapped": false,
           "MetersPerPixel": 0.06195019204559534,
-          "UpDirection": "down",
-          "LastModifiedUtc": "2026-11-26T04:39:04.734209Z"
+          "UpDirection": "up",
+          "LastModifiedUtc": "2026-09-27T06:17:38.762621Z"
         }
       ]
     },

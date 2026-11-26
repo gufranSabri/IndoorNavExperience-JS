@@ -23,5 +23,17 @@
       "y": 4923.4015,
       "label": "Center Staircase 2"
     }
+  ],
+  "point-of-interest": [
+    {
+      "x": 5650.2489,
+      "y": 3648.703,
+      "label": "Wing B"
+    },
+    {
+      "x": 6717.993,
+      "y": 3659.3918,
+      "label": "Wing A"
+    }
   ]
 }

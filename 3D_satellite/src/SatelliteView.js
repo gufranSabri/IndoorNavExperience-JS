@@ -3,7 +3,7 @@ import { createProjector } from './core/coords.js';
 import { buildBuilding } from './core/BuildingBuilder.js';
 import { MapControls, fitDistanceForPoints } from './core/MapControls.js';
 import { RouteRenderer } from './core/RouteRenderer.js';
-import { loadFloorData, buildRouteNodes, buildPathIndex, findRoute, resolveNearestByLabel, pickDefaultStartNode } from './core/FloorDataLoader.js';
+import { loadFloorData, buildRouteNodes, buildPathIndex, findRoute, resolveNearestByLabel, pickDefaultStartNode, splitName } from './core/FloorDataLoader.js';
 import { pointInPolygon, longAxis } from './core/polygon.js';
 import { LabelLayer } from './ui/LabelLayer.js';
 import { UserMarker, DestinationPin } from './ui/Markers.js';
@@ -489,7 +489,7 @@ export class SatelliteView {
     const end = this.routeRenderer.pointAt(length);
     // The pin stands on the destination room's roof so it is never hidden behind walls.
     const pinY = destRoom ? BASE_HEIGHT + destRoom.height : this._surfaceY(end.x, end.z);
-    this.destinationPin.set({ x: end.x, y: pinY, z: end.z }, this.nodeById.get(destinationId)?.label || '');
+    this.destinationPin.set({ x: end.x, y: pinY, z: end.z }, splitName(this.nodeById.get(destinationId)?.label).main);
     this.labels.setHidden(destPlace ? [destPlace.id] : []);
     this.labels.setEmphasized(startPlace ? [startPlace.id] : []);
 

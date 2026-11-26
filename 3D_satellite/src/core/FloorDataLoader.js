@@ -91,6 +91,16 @@ export function buildRouteNodes(floorData) {
 // The name the UI shows for a node.
 export const nodeName = (node) => node.displayLabel || node.label;
 
+// A name can pack a main name and subtext lines as "Main:Sub:Sub" — split
+// it into { main, subtexts } for display. Names without a colon are just the main name.
+export function splitName(name) {
+  const parts = String(name ?? '').split(':').map((p) => p.trim()).filter(Boolean);
+  return { main: parts[0] || '', subtexts: parts.slice(1) };
+}
+
+// The main name only, for single-line display (e.g. a text input) where subtext would not fit.
+export const mainName = (node) => splitName(nodeName(node)).main;
+
 // paths.json stores one entry per unordered reachable pair; index both
 // directions so route lookups between any two selected nodes are O(1).
 export function buildPathIndex(pathsDoc) {

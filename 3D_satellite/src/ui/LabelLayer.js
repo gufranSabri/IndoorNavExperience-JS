@@ -1,5 +1,6 @@
 import { icon } from './icons.js';
 import { projectToScreen, isOccluded } from '../core/screen.js';
+import { splitName } from '../core/FloorDataLoader.js';
 
 const ICON_SIZE = 30; // px, badge-only label
 const ROW_HEIGHT = 30;
@@ -39,7 +40,7 @@ export class LabelLayer {
         el.style.setProperty('--c', item.style.color);
         el.dataset.id = item.id;
         el.innerHTML = `<div class="sat-chip"><span class="sat-label-badge">${icon(item.style.icon, { size: 14, stroke: 2.2 })}</span><span class="sat-label-text"></span></div>`;
-        el.querySelector('.sat-label-text').textContent = item.name;
+        el.querySelector('.sat-label-text').textContent = splitName(item.name).main;
         this.root.appendChild(el);
         const entry = { ...item, el, fullWidth: 0, mode: 'hidden', lastX: -1e9, lastY: -1e9 };
         this._byId.set(item.id, entry);

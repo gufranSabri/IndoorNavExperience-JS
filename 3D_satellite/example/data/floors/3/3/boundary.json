@@ -15053,7 +15053,7 @@
       {
         "id": "cf6de12f-bd83-49fe-be26-dcdb4eb7b8ac",
         "name": "Room 1",
-        "area": 16226885.68,
+        "area": 12304575.07,
         "status": "active",
         "wall_ids": [
           "c507b30e-f91e-48a3-8d78-3d85fdd7ace6",
@@ -15396,7 +15396,7 @@
       {
         "id": "ffee0a3f-d56b-4a5f-8a61-5de5aef4e5a1",
         "name": "Room 2",
-        "area": 2531039.53,
+        "area": 2149835.92,
         "status": "active",
         "wall_ids": [
           "6f8350f4-e4b3-4aee-bc9c-ab42f1e10251",
@@ -16236,7 +16236,7 @@
       {
         "id": "6dc27991-00a7-4719-975a-8cede674c1e9",
         "name": "Room 12",
-        "area": 346621.97,
+        "area": 293174.13,
         "status": "active",
         "wall_ids": [
           "27f63703-c2dd-45a9-b287-772aaebb5a31",
