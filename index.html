@@ -103,7 +103,6 @@
       DisclaimerModal, TripPlanner, ItineraryView, TripProgress,
       loadFloorData, buildRouteNodes, buildPathIndex, planTrip, planToLegs,
     } from './3D_satellite/src/index.js';
-    import { dedupeNodesByLabel } from './3D_satellite/src/core/FloorDataLoader.js';
     import qrcodegen from './3D_satellite/src/vendor/qrcodegen.js';
 
     // Root ("/", no ?building=) shows a building picker instead of the map;
@@ -202,7 +201,8 @@
     async function loadAllFloors(floors) {
       return Promise.all(floors.map(async (floor) => {
         const data = await loadFloorData(floor.url);
-        const nodes = dedupeNodesByLabel(buildRouteNodes(data).filter((n) => n.reachable));
+        // Not deduped by name: the trip planner lists a name once, but needs every same-named node to pick the nearest.
+        const nodes = buildRouteNodes(data).filter((n) => n.reachable);
         const pathIndex = buildPathIndex(data.paths);
         return { url: floor.url, name: floor.name, nodes, pathIndex };
       }));

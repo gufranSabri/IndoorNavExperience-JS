@@ -1,4 +1,5 @@
 import { icon } from './ui/icons.js';
+import { nodeName } from './core/FloorDataLoader.js';
 import { styleForNode } from './ui/itineraryStyle.js';
 import { formatDistance, formatDuration } from './RouteSelector.js';
 
@@ -113,7 +114,7 @@ export class ItineraryView {
     this._startFloor = startFloor;
 
     if (!plan) {
-      this.subtitleEl.textContent = `${startNode.label} → ${destNode.label}`;
+      this.subtitleEl.textContent = `${nodeName(startNode)} → ${nodeName(destNode)}`;
       this.errorEl.hidden = false;
       this.errorEl.textContent = startFloor === destFloor || startFloor.url === destFloor.url
         ? "No walkable route was found between those two places."
@@ -123,14 +124,14 @@ export class ItineraryView {
       this.startBtn.disabled = false;
       if (plan.sameFloor) {
         this.subtitleEl.textContent = `${startFloor.name} · ${formatDistance(plan.route.distance)} · ${formatDuration(plan.route.distance / 1.3)}`;
-        this._renderStep(startNode, 'Start here', startNode.label, null);
-        this._renderStep(destNode, 'Destination', destNode.label, null, { last: true });
+        this._renderStep(startNode, 'Start here', nodeName(startNode), null);
+        this._renderStep(destNode, 'Destination', nodeName(destNode), null, { last: true });
       } else {
         const totalDistance = plan.legA.route.distance + plan.legB.route.distance;
         this.subtitleEl.textContent = `${startFloor.name} → ${destFloor.name} · ${formatDistance(totalDistance)} · ${formatDuration(totalDistance / 1.3)}`;
-        this._renderStep(startNode, 'Start here', startNode.label, startFloor.name);
+        this._renderStep(startNode, 'Start here', nodeName(startNode), startFloor.name);
         this._renderStep(plan.legA.transporter, `Take ${plan.transporterName}`, null, `to ${destFloor.name}`);
-        this._renderStep(destNode, 'Destination', destNode.label, destFloor.name, { last: true });
+        this._renderStep(destNode, 'Destination', nodeName(destNode), destFloor.name, { last: true });
       }
     }
 

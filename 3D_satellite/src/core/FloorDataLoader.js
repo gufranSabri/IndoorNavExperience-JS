@@ -1,5 +1,5 @@
 import { resolveRoomProfile } from './roomProfiles.js';
-import { DEFAULT_START } from './constants.js';
+import { DEFAULT_START, ROOM_PROFILE } from './constants.js';
 
 async function fetchJson(url) {
   const res = await fetch(url);
@@ -42,6 +42,8 @@ export function buildRouteNodes(floorData) {
     let label = node.id;
     let category = null;
     let profile = null;
+    let displayLabel = null; // what the UI shows when it differs from `label` (which stays unique for cross-floor matching)
+    let isElevator = false;
     let genericExit = false; // an exit with no name in objects.json
     if (node.class === 'room') {
       const roomId = node.id.replace(/^room-/, '');
@@ -52,6 +54,10 @@ export function buildRouteNodes(floorData) {
       label = room.name || 'Room';
       category = room.category || null;
       profile = resolveRoomProfile(room);
+      // "Elevator 4" means nothing to a visitor: every elevator reads "Elevator" and a trip
+      // to one routes to the nearest. `label` keeps the real name — planTrip pairs the same
+      // elevator across floors by it.
+      if (room.category === 'elevator' || profile.key === ROOM_PROFILE.ELEVATOR) { isElevator = true; displayLabel = 'Elevator'; }
     } else {
       const match = node.id.match(/^(.+)-(\d+)$/);
       if (match) {
@@ -73,12 +79,17 @@ export function buildRouteNodes(floorData) {
       category,
       profile,
       genericExit,
+      isElevator,
+      displayLabel,
       centroidPx: node.centroid_px,
       reachable: node.reachable !== false,
     });
   }
   return nodes;
 }
+
+// The name the UI shows for a node.
+export const nodeName = (node) => node.displayLabel || node.label;
 
 // paths.json stores one entry per unordered reachable pair; index both
 // directions so route lookups between any two selected nodes are O(1).

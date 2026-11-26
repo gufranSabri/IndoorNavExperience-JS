@@ -1,5 +1,5 @@
 import { icon } from './ui/icons.js';
-import { labelKey } from './core/FloorDataLoader.js';
+import { labelKey, nodeName } from './core/FloorDataLoader.js';
 import { OBJECT_STYLE, PICKER_CATEGORIES, PICKER_HIDDEN, pickerCategoryOf } from './core/constants.js';
 
 const STYLE = `
@@ -193,7 +193,7 @@ export class TripPlanner {
     this.filterTextEl = this.root.querySelector('[data-role="filter-text"]');
     this.listEl = this.root.querySelector('[data-role="list"]');
 
-    if (defaultStartNode) this.startInput.value = defaultStartNode.node.label;
+    if (defaultStartNode) this.startInput.value = nodeName(defaultStartNode.node);
 
     this._buildCategoryRow();
     this._renderList();
@@ -255,8 +255,8 @@ export class TripPlanner {
     const a = this.startSelection;
     this.startSelection = this.destSelection;
     this.destSelection = a;
-    this.startInput.value = this.startSelection ? this.startSelection.node.label : '';
-    this.destInput.value = this.destSelection ? this.destSelection.node.label : '';
+    this.startInput.value = this.startSelection ? nodeName(this.startSelection.node) : '';
+    this.destInput.value = this.destSelection ? nodeName(this.destSelection.node) : '';
   }
 
   _buildCategoryRow() {
@@ -311,17 +311,17 @@ export class TripPlanner {
     const picking = this._activeField || 'dest';
     const other = picking === 'start' ? this.destSelection : this.startSelection;
     for (const floor of this.floors) {
-      let exitSeen = false; // unnamed exits are all just "Exit" — list one per floor
+      const seen = new Set(); // same-named nodes are one place to a visitor — list each name once per floor
       const items = floor.nodes.filter((n) => {
         if (PICKER_HIDDEN(n)) return false;
-        if (n.genericExit) { // named exits are ordinary places; unnamed ones collapse into one "Exit"
-          if (picking === 'start') return false; // "Exit" isn't one place, so it can't be a starting point
-          if (exitSeen) return false;
-          exitSeen = true;
-        }
-        if (other && other.floor === floor && other.node.id === n.id) return false;
+        // Unnamed exits ("Exit") and elevators ("Elevator") stand for "the nearest one", so they can't be a starting point.
+        if (picking === 'start' && (n.genericExit || n.isElevator)) return false;
+        const key = labelKey(nodeName(n));
+        if (seen.has(key)) return false;
+        seen.add(key);
+        if (other && other.floor === floor && labelKey(nodeName(other.node)) === key) return false;
         if (this._category && pickerCategoryOf(n)?.id !== this._category) return false;
-        if (query && !labelKey(n.label).includes(query)) return false;
+        if (query && !labelKey(nodeName(n)).includes(query)) return false;
         return true;
       });
       if (!items.length) continue;
@@ -345,7 +345,7 @@ export class TripPlanner {
         item.type = 'button';
         item.className = 'wf-trip-item';
         item.innerHTML = `<span class="wf-trip-item-icon" style="--c:${style.color}">${icon(style.icon, { size: 16, stroke: 2.2 })}</span>
-          <span class="wf-trip-item-body"><span class="wf-trip-item-name">${node.label}</span></span>`;
+          <span class="wf-trip-item-body"><span class="wf-trip-item-name">${nodeName(node)}</span></span>`;
         item.addEventListener('click', () => this._pick(floor, node));
         this.listEl.appendChild(item);
       }
@@ -358,7 +358,7 @@ export class TripPlanner {
     const field = this._activeField || 'dest'; // no field focused yet (fresh open) — a tap picks the destination, the common case
     if (field === 'start') {
       this.startSelection = selection;
-      this.startInput.value = node.label;
+      this.startInput.value = nodeName(node);
       if (this.destSelection) {
         // Destination was already picked (the user came back to change the
         // start) — finish right away instead of redirecting them into the
@@ -372,7 +372,7 @@ export class TripPlanner {
       }
     } else {
       this.destSelection = selection;
-      this.destInput.value = node.label;
+      this.destInput.value = nodeName(node);
       this._activeField = null;
       this.destInput.blur();
       this._maybeFinish();
@@ -398,7 +398,7 @@ export class TripPlanner {
    */
   reset({ start = null } = {}) {
     this.startSelection = start;
-    this.startInput.value = start ? start.node.label : '';
+    this.startInput.value = start ? nodeName(start.node) : '';
     this.destSelection = null;
     this.destInput.value = '';
     this._setCategory(null);

@@ -30,15 +30,16 @@ function transporterPool(nodes, { preferStairs }) {
  *   { sameFloor: false, legA, transporterName, legB }             — crosses floors via a transporter
  *   null                                                          — no usable transporter links the two floors
  */
-// A generic ("Exit") destination means "the nearest exit": swap in whichever
-// unnamed exit on the destination floor is closest to where the walk there begins.
-// A named exit is a specific place and is routed to as picked.
+// Same-named nodes are one place to a visitor ("Exit", "Elevator", several
+// "Side Exit"s or "Toilets"), so a destination means "the nearest one with that
+// name": pick whichever matching node on the destination floor is closest to where
+// the walk there begins. A uniquely named node is simply routed to as picked.
 function nearestExit(floor, fromId, picked) {
-  if (!picked.genericExit) return picked;
+  const key = labelKey(picked.displayLabel || picked.label);
   let best = picked;
   let bestDistance = Infinity;
   for (const node of floor.nodes) {
-    if (!node.genericExit) continue;
+    if (labelKey(node.displayLabel || node.label) !== key) continue;
     const route = findRoute(floor.pathIndex, fromId, node.id);
     if (route && route.distance < bestDistance) {
       best = node;
@@ -89,7 +90,7 @@ export function planTrip(startFloor, startNode, destFloor, destNode, { preferSta
   return {
     sameFloor: false,
     legA: { route: bestRoute, transporter: best },
-    transporterName: best.label,
+    transporterName: best.displayLabel || best.label,
     legB: { route: legB, transporter: destTransporter },
     destNode,
   };
