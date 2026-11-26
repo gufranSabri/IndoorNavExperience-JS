@@ -89,7 +89,6 @@ const STYLE = `
 .wf-trip-item-icon { flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--c); color: #0d0f13; }
 .wf-trip-item-body { flex: 1; min-width: 0; }
 .wf-trip-item-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.wf-trip-item-sub { display: block; font-size: 12px; color: var(--muted); margin-top: 1px; }
 .wf-trip-empty { padding: 32px 8px; text-align: center; font-size: 13px; color: var(--muted); }
 
 /* ---- wide screens: a docked left sidebar instead of a full-screen takeover,
@@ -111,12 +110,6 @@ function ensureStyle() {
   el.textContent = STYLE;
   document.head.appendChild(el);
   styleInjected = true;
-}
-
-function groupLabel(node) {
-  if (node.class === 'room') return 'Rooms';
-  if (node.class === 'exits') return 'Entrances & exits';
-  return node.class.charAt(0).toUpperCase() + node.class.slice(1);
 }
 
 function styleFor(node) {
@@ -319,7 +312,7 @@ export class TripPlanner {
         item.type = 'button';
         item.className = 'wf-trip-item';
         item.innerHTML = `<span class="wf-trip-item-icon" style="--c:${style.color}">${icon(style.icon, { size: 16, stroke: 2.2 })}</span>
-          <span class="wf-trip-item-body"><span class="wf-trip-item-name">${node.label}</span><span class="wf-trip-item-sub">${groupLabel(node)} · ${floor.name}</span></span>`;
+          <span class="wf-trip-item-body"><span class="wf-trip-item-name">${node.label}</span></span>`;
         item.addEventListener('click', () => this._pick(floor, node));
         this.listEl.appendChild(item);
       }
