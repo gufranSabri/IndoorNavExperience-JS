@@ -12,6 +12,11 @@ const STYLE = `
   -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
 }
 .wf-trip[hidden] { display: none; }
+/* Soft keyboard open (see _fitToVisualViewport): drop the non-essential rows so the results get the space. */
+.wf-trip.is-kb .wf-trip-header { padding-top: calc(10px + env(safe-area-inset-top)); padding-bottom: 8px; }
+.wf-trip.is-kb .wf-trip-header h1, .wf-trip.is-kb .wf-trip-prefer { display: none; }
+.wf-trip.is-kb .wf-trip-fields { margin-bottom: 8px; }
+.wf-trip.is-kb .wf-trip-list { padding-bottom: 12px; }
 .wf-trip-header {
   flex: none; padding: calc(20px + env(safe-area-inset-top)) 20px 14px; max-width: 520px; width: 100%; margin: 0 auto;
 }
@@ -197,6 +202,29 @@ export class TripPlanner {
     this.destInput.addEventListener('input', () => { this._query = this.destInput.value; this._renderList(); });
     this.root.querySelector('[data-role="filter-clear"]').addEventListener('click', () => this._setCategory(null));
     this.root.querySelector('.wf-trip-swap').addEventListener('click', () => this._swap());
+
+    // Mobile: a fixed panel is sized to the layout viewport, which the soft
+    // keyboard overlays instead of shrinking — so track the visual viewport.
+    this._vv = window.visualViewport || null;
+    this._onViewport = () => this._fitToVisualViewport();
+    if (this._vv) {
+      this._vv.addEventListener('resize', this._onViewport);
+      this._vv.addEventListener('scroll', this._onViewport);
+    }
+  }
+
+  _fitToVisualViewport() {
+    const vv = this._vv;
+    const docked = window.matchMedia('(min-width: 561px)').matches; // sidebar mode: no keyboard overlap handling needed
+    const keyboard = !docked && !!vv && window.innerHeight - vv.height > 120;
+    this.root.classList.toggle('is-kb', keyboard);
+    if (keyboard) {
+      this.root.style.top = `${vv.offsetTop}px`;
+      this.root.style.height = `${vv.height}px`;
+      this.root.style.bottom = 'auto';
+    } else {
+      this.root.style.top = this.root.style.height = this.root.style.bottom = '';
+    }
   }
 
   /** `node` is { floor, node } or null — kept separate from the text input so clearing/retyping text never loses the resolved selection until a NEW one is picked. */
@@ -364,6 +392,10 @@ export class TripPlanner {
   }
 
   dispose() {
+    if (this._vv) {
+      this._vv.removeEventListener('resize', this._onViewport);
+      this._vv.removeEventListener('scroll', this._onViewport);
+    }
     this.root.remove();
   }
 }
