@@ -42,6 +42,7 @@ export function buildRouteNodes(floorData) {
     let label = node.id;
     let category = null;
     let profile = null;
+    let genericExit = false; // an exit with no name in objects.json
     if (node.class === 'room') {
       const roomId = node.id.replace(/^room-/, '');
       const room = roomsById.get(roomId);
@@ -58,11 +59,12 @@ export function buildRouteNodes(floorData) {
         const index = Number(indexStr);
         const flat = flatObjects[index];
         const flatLabel = flat && flat.className === className ? flat.label : null;
-        label = flatLabel || objectLabelsByClass[className]?.[index] || `${className} ${index + 1}`;
+        const named = flatLabel || objectLabelsByClass[className]?.[index];
+        label = named || `${className} ${index + 1}`;
+        // A named exit is a place of its own. Unnamed ones can't be told apart, so
+        // they are all just "Exit" and a trip to one routes to the nearest.
+        if (className === 'exits' && !named) { label = 'Exit'; genericExit = true; }
       }
-      // Exits are never told apart by name — they are all just "Exit", and a trip
-      // to one routes to the nearest (see planTrip / resolveNearestByLabel).
-      if (node.class === 'exits') label = 'Exit';
     }
     nodes.push({
       id: node.id,
@@ -70,6 +72,7 @@ export function buildRouteNodes(floorData) {
       label,
       category,
       profile,
+      genericExit,
       centroidPx: node.centroid_px,
       reachable: node.reachable !== false,
     });
@@ -149,6 +152,6 @@ export function pickDefaultStartNode(nodes) {
   const preferred = kiosks.find((n) => labelKey(n.label) === preferredKey);
   if (preferred) return preferred.id;
   if (kiosks.length) return kiosks[0].id;
-  const exit = nodes.find((n) => n.class === 'exits');
+  const exit = nodes.find((n) => n.class === 'exits' && !n.genericExit); // an unnamed "Exit" isn't one place
   return exit ? exit.id : null;
 }

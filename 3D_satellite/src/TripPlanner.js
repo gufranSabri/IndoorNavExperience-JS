@@ -311,10 +311,10 @@ export class TripPlanner {
     const picking = this._activeField || 'dest';
     const other = picking === 'start' ? this.destSelection : this.startSelection;
     for (const floor of this.floors) {
-      let exitSeen = false; // every exit is just "Exit" — list one per floor
+      let exitSeen = false; // unnamed exits are all just "Exit" — list one per floor
       const items = floor.nodes.filter((n) => {
         if (PICKER_HIDDEN(n)) return false;
-        if (n.class === 'exits') {
+        if (n.genericExit) { // named exits are ordinary places; unnamed ones collapse into one "Exit"
           if (picking === 'start') return false; // "Exit" isn't one place, so it can't be a starting point
           if (exitSeen) return false;
           exitSeen = true;
