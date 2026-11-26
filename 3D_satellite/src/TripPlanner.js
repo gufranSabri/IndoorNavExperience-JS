@@ -34,6 +34,15 @@ const STYLE = `
   outline: none; -webkit-user-select: text; user-select: text;
 }
 .wf-trip-input-wrap input::placeholder { color: var(--muted); }
+.wf-trip-input-wrap input { padding-right: 38px; }
+.wf-trip-input-wrap--dest input { border-color: #4285f4; padding-left: 38px; }
+.wf-trip-input-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #4285f4; display: grid; pointer-events: none; }
+.wf-trip-clear {
+  appearance: none; position: absolute; right: 7px; top: 50%; transform: translateY(-50%); width: 26px; height: 26px; padding: 0;
+  border: 0; border-radius: 50%; background: rgba(255,255,255,.12); color: var(--text); cursor: pointer; display: grid; place-items: center;
+}
+.wf-trip-clear:hover { background: rgba(255,255,255,.2); }
+.wf-trip-input-wrap input:placeholder-shown ~ .wf-trip-clear { display: none; }
 .wf-trip-input-wrap input:focus { border-color: #4285f4; }
 .wf-trip-input-wrap.is-active input { border-color: #4285f4; background: rgba(66,133,244,.08); }
 .wf-trip-swap {
@@ -162,8 +171,8 @@ export class TripPlanner {
         <div class="wf-trip-fields">
           <div class="wf-trip-rail"><span class="wf-trip-from"></span><span class="wf-trip-line"></span><span class="wf-trip-to">${icon('pin', { size: 18, stroke: 2.2 })}</span></div>
           <div class="wf-trip-inputs">
-            <div class="wf-trip-input-wrap" data-role="start-wrap"><input type="text" data-role="start-input" placeholder="Choose starting point" autocomplete="off" aria-label="Start" /></div>
-            <div class="wf-trip-input-wrap" data-role="dest-wrap"><input type="text" data-role="dest-input" placeholder="Choose destination" autocomplete="off" aria-label="Destination" /></div>
+            <div class="wf-trip-input-wrap" data-role="start-wrap"><input type="text" data-role="start-input" placeholder="Choose starting point" autocomplete="off" aria-label="Start" /><button type="button" class="wf-trip-clear" data-role="start-clear" aria-label="Clear start">${icon('close', { size: 13, stroke: 2.6 })}</button></div>
+            <div class="wf-trip-input-wrap wf-trip-input-wrap--dest" data-role="dest-wrap"><span class="wf-trip-input-icon">${icon('search', { size: 16, stroke: 2.2 })}</span><input type="text" data-role="dest-input" placeholder="Choose destination" autocomplete="off" aria-label="Destination" /><button type="button" class="wf-trip-clear" data-role="dest-clear" aria-label="Clear destination">${icon('close', { size: 13, stroke: 2.6 })}</button></div>
           </div>
           <button type="button" class="wf-trip-swap" title="Swap start and destination" aria-label="Swap start and destination">${icon('swap', { size: 17, stroke: 2.2 })}</button>
         </div>
@@ -191,10 +200,12 @@ export class TripPlanner {
 
     this.startInput.addEventListener('focus', () => this._setActiveField('start'));
     this.destInput.addEventListener('focus', () => this._setActiveField('dest'));
-    this.startInput.addEventListener('input', () => { this._query = this.startInput.value; this._renderList(); });
-    this.destInput.addEventListener('input', () => { this._query = this.destInput.value; this._renderList(); });
+    this.startInput.addEventListener('input', () => { this.startSelection = null; this._query = this.startInput.value; this._renderList(); });
+    this.destInput.addEventListener('input', () => { this.destSelection = null; this._query = this.destInput.value; this._renderList(); });
     this.root.querySelector('[data-role="filter-clear"]').addEventListener('click', () => this._setCategory(null));
     this.root.querySelector('.wf-trip-swap').addEventListener('click', () => this._swap());
+    this.root.querySelector('[data-role="start-clear"]').addEventListener('click', () => this._clearField('start'));
+    this.root.querySelector('[data-role="dest-clear"]').addEventListener('click', () => this._clearField('dest'));
 
     // Mobile: a fixed panel is sized to the layout viewport, which the soft
     // keyboard overlays instead of shrinking — so track the visual viewport.
@@ -227,6 +238,17 @@ export class TripPlanner {
     this.destWrap.classList.toggle('is-active', field === 'dest');
     this._query = (field === 'start' ? this.startInput.value : this.destInput.value) || '';
     this._renderList();
+  }
+
+  // The x button: empties the field AND drops its resolved selection, then keeps the keyboard up on it.
+  _clearField(field) {
+    const input = field === 'start' ? this.startInput : this.destInput;
+    input.value = '';
+    if (field === 'start') this.startSelection = null;
+    else this.destSelection = null;
+    this._activeField = field;
+    this._setActiveField(field);
+    input.focus();
   }
 
   _swap() {
@@ -277,15 +299,26 @@ export class TripPlanner {
   _renderList() {
     const query = labelKey(this._query);
     const isFiltering = !!query || !!this._category;
-    if (!isFiltering && this._wasFiltering) this._expandedFloors.clear(); // the search/filter that justified any manual expand just ended — back to all collapsed
+    // _expandedFloors = the open floors. Closed by default; the moment a search/filter
+    // starts, every floor opens; a floor the user then closes stays closed while they keep
+    // typing; the moment the search/filter ends, everything collapses and the state resets (with nothing typed, header taps toggle freely).
+    if (isFiltering && !this._wasFiltering) for (const f of this.floors) this._expandedFloors.add(f.name);
+    if (!isFiltering && this._wasFiltering) this._expandedFloors.clear();
     this._wasFiltering = isFiltering;
     this.listEl.innerHTML = '';
     let any = false;
     // Picking the start hides the chosen destination, and vice versa.
-    const other = (this._activeField || 'dest') === 'start' ? this.destSelection : this.startSelection;
+    const picking = this._activeField || 'dest';
+    const other = picking === 'start' ? this.destSelection : this.startSelection;
     for (const floor of this.floors) {
+      let exitSeen = false; // every exit is just "Exit" — list one per floor
       const items = floor.nodes.filter((n) => {
         if (PICKER_HIDDEN(n)) return false;
+        if (n.class === 'exits') {
+          if (picking === 'start') return false; // "Exit" isn't one place, so it can't be a starting point
+          if (exitSeen) return false;
+          exitSeen = true;
+        }
         if (other && other.floor === floor && other.node.id === n.id) return false;
         if (this._category && pickerCategoryOf(n)?.id !== this._category) return false;
         if (query && !labelKey(n.label).includes(query)) return false;
@@ -293,7 +326,7 @@ export class TripPlanner {
       });
       if (!items.length) continue;
       any = true;
-      const expanded = isFiltering || this._expandedFloors.has(floor.name);
+      const expanded = this._expandedFloors.has(floor.name);
       const groupEl = document.createElement('button');
       groupEl.type = 'button';
       groupEl.className = 'wf-trip-group-label';

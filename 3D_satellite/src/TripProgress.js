@@ -53,6 +53,20 @@ const STYLE = `
 .wf-progress-side-btn:hover:not(:disabled) { background: rgba(255,255,255,.16); }
 .wf-progress-side-btn:active:not(:disabled) { background: rgba(255,255,255,.22); transform: scale(.94); }
 .wf-progress-side-btn:disabled { opacity: .3; cursor: default; }
+/* Back = red; Skip (front) = green with a slow pulsing ring to invite the tap. */
+.wf-progress-side-btn[data-role="back"] { background: #d93025; border-color: transparent; color: #fff; }
+.wf-progress-side-btn[data-role="back"]:hover:not(:disabled) { background: #e8463a; }
+.wf-progress-side-btn[data-role="back"]:active:not(:disabled) { background: #c62a1f; }
+.wf-progress-side-btn[data-role="skip"] { background: #1e9e4a; border-color: transparent; color: #fff; }
+.wf-progress-side-btn[data-role="skip"]:hover:not(:disabled) { background: #25b358; }
+.wf-progress-side-btn[data-role="skip"]:active:not(:disabled) { background: #168a3d; }
+.wf-progress-side-btn[data-role="skip"]:not(:disabled) { animation: wf-progress-pulse 1.8s ease-out infinite; }
+@keyframes wf-progress-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(52,199,89,.6); transform: scale(1); }
+  50% { transform: scale(1.06); }
+  100% { box-shadow: 0 0 0 14px rgba(52,199,89,0); transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) { .wf-progress-side-btn[data-role="skip"]:not(:disabled) { animation: none; } }
 
 .wf-progress-track { position: relative; flex: 1; height: 44px; display: flex; align-items: center; padding: 0 17px; }
 .wf-progress-rail {
@@ -113,6 +127,19 @@ const STYLE = `
 .wf-path-step-sub { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
 .wf-path-step.is-done { opacity: .45; }
 
+/* final "you've arrived" confirmation */
+.wf-success-icon {
+  width: 84px; height: 84px; margin: 8px auto 18px; border-radius: 50%; display: grid; place-items: center;
+  background: #1e9e4a; color: #fff; animation: wf-success-pulse 1.8s ease-out infinite;
+}
+.wf-success-title { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 6px; }
+@keyframes wf-success-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(52,199,89,.6); transform: scale(1); }
+  50% { transform: scale(1.06); }
+  100% { box-shadow: 0 0 0 22px rgba(52,199,89,0); transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) { .wf-success-icon { animation: none; } }
+
 /* arrival confirmation */
 .wf-arrival-body { padding: 4px 18px 18px; text-align: center; }
 .wf-arrival-icon { width: 48px; height: 48px; margin: 4px auto 14px; border-radius: 50%; display: grid; place-items: center; background: var(--c); color: #0d0f13; }
@@ -164,6 +191,7 @@ function legKicker(leg) {
 export class TripProgress {
   constructor(container) {
     ensureStyle();
+    this.container = container;
     this.legs = [];
     this.legIndex = 0;
 
@@ -276,6 +304,7 @@ export class TripProgress {
     this.bottomRoot.hidden = true;
     this._closeFullPath();
     this._closeArrival();
+    this.successOverlay?.classList.remove('is-open');
   }
 
   // ---- full path overlay -------------------------------------------------
@@ -354,10 +383,39 @@ export class TripProgress {
     this.arrivalOverlay.querySelector('[data-role="no"]').addEventListener('click', () => this._closeArrival());
     this.arrivalOverlay.querySelector('[data-role="yes"]').addEventListener('click', () => {
       this._closeArrival();
-      this.onArrive?.(this.legs[this.legIndex], this.legIndex);
+      const leg = this.legs[this.legIndex];
+      if (leg && leg.kind === 'destination') this._showSuccess(leg); // final stop: confirm before handing off
+      else this.onArrive?.(leg, this.legIndex);
     });
     this.arrivalOverlay.addEventListener('pointerdown', (e) => e.stopPropagation());
     this.arrivalOverlay.addEventListener('wheel', (e) => e.stopPropagation());
+  }
+
+  // The last "yes": swaps the question for a pulsing green tick; Done hands off to onArrive.
+  _showSuccess(leg) {
+    if (!this.successOverlay) {
+      this.successOverlay = document.createElement('div');
+      this.successOverlay.className = 'wf-overlay';
+      this.successOverlay.innerHTML = `
+        <div class="wf-overlay-backdrop"></div>
+        <div class="wf-overlay-card" role="dialog" aria-label="Arrived" style="max-height:none;">
+          <div class="wf-arrival-body">
+            <div class="wf-success-icon">${icon('check', { size: 46, stroke: 3 })}</div>
+            <h2 class="wf-success-title">You've arrived</h2>
+            <p class="wf-arrival-text" data-role="text"></p>
+            <div class="wf-arrival-actions"><button type="button" class="wf-arrival-btn wf-arrival-btn--primary" data-role="done">Done</button></div>
+          </div>
+        </div>`;
+      this.container.appendChild(this.successOverlay);
+      this.successOverlay.addEventListener('pointerdown', (e) => e.stopPropagation());
+      this.successOverlay.addEventListener('wheel', (e) => e.stopPropagation());
+      this.successOverlay.querySelector('[data-role="done"]').addEventListener('click', () => {
+        this.successOverlay.classList.remove('is-open');
+        this.onArrive?.(this.legs[this.legIndex], this.legIndex);
+      });
+    }
+    this.successOverlay.querySelector('[data-role="text"]').textContent = `You reached ${leg.toNode.label}.`;
+    this.successOverlay.classList.add('is-open');
   }
 
   _promptArrival() {
@@ -381,5 +439,6 @@ export class TripProgress {
     this.bottomRoot.remove();
     this.pathOverlay.remove();
     this.arrivalOverlay.remove();
+    this.successOverlay?.remove();
   }
 }

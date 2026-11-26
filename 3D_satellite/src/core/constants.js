@@ -155,12 +155,11 @@ export const PICKER_CATEGORIES = [
   { id: 'meeting', label: 'Meeting Rooms', icon: 'presentation', tint: '#b391ff', match: (n) => isRoom(n) && n.profile?.key === P.WORK_MEETING },
   { id: 'toilets', label: 'Toilets', icon: 'toilet', tint: '#ffb454', match: (n) => isRoom(n) && n.profile?.key === P.TOILET },
   { id: 'amenities', label: 'Amenities', icon: 'store', tint: '#f472b6', match: (n) => isRoom(n) && n.category === 'amenities' && n.profile?.key !== P.TOILET },
-  { id: 'exits', label: 'Exits', icon: 'exit', tint: '#4ade80', match: (n) => n.class === 'exits' },
 ];
 
-// Never listed or searchable in the destination picker: elevators, stairs, kiosks.
+// Never listed or searchable in the destination picker: elevators and stairs.
 export const PICKER_HIDDEN = (n) =>
-  (isRoom(n) && (n.category === 'elevator' || n.profile?.key === P.ELEVATOR)) || n.class === 'stairs' || DEFAULT_START.nodeClass.test(n.class);
+  (isRoom(n) && (n.category === 'elevator' || n.profile?.key === P.ELEVATOR)) || n.class === 'stairs';
 
 export const pickerCategoryOf = (node) => PICKER_CATEGORIES.find((c) => c.match(node)) || null;
 

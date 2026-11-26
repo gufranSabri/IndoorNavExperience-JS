@@ -44,6 +44,9 @@ const STYLE = `
 .wf-itin-btn--primary:hover { background: #5a95f5; }
 .wf-itin-btn--ghost { background: rgba(255,255,255,.06); color: var(--text); border: 1px solid var(--border); }
 .wf-itin-btn--ghost:hover { background: rgba(255,255,255,.1); }
+.wf-itin-btn--danger { background: #ea4335; color: #fff; border: 0; }
+.wf-itin-btn--danger:hover { background: #e8463a; }
+.wf-itin-btn--danger:active { background: #c62a1f; }
 
 /* ---- wide screens: a docked left sidebar instead of a full-screen takeover —
    same treatment as TripPlanner.js's own, so the two feel like one panel
@@ -86,7 +89,7 @@ export class ItineraryView {
       <div class="wf-itin-error" data-role="error" hidden></div>
       <div class="wf-itin-steps" data-role="steps"></div>
       <div class="wf-itin-actions">
-        <button type="button" class="wf-itin-btn wf-itin-btn--ghost" data-role="cancel">Cancel</button>
+        <button type="button" class="wf-itin-btn wf-itin-btn--danger" data-role="cancel">Cancel</button>
         <button type="button" class="wf-itin-btn wf-itin-btn--primary" data-role="start">Start</button>
       </div>`;
     container.appendChild(this.root);

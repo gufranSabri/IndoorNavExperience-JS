@@ -30,12 +30,30 @@ function transporterPool(nodes, { preferStairs }) {
  *   { sameFloor: false, legA, transporterName, legB }             — crosses floors via a transporter
  *   null                                                          — no usable transporter links the two floors
  */
+// An exit destination means "the nearest exit": swap in whichever exit on the
+// destination floor is closest to where the walk there begins.
+function nearestExit(floor, fromId, picked) {
+  if (picked.class !== 'exits') return picked;
+  let best = picked;
+  let bestDistance = Infinity;
+  for (const node of floor.nodes) {
+    if (node.class !== 'exits') continue;
+    const route = findRoute(floor.pathIndex, fromId, node.id);
+    if (route && route.distance < bestDistance) {
+      best = node;
+      bestDistance = route.distance;
+    }
+  }
+  return best;
+}
+
 export function planTrip(startFloor, startNode, destFloor, destNode, { preferStairs = false } = {}) {
   if (!startNode || !destNode) return null;
 
   if (startFloor === destFloor || startFloor.url === destFloor.url) {
+    destNode = nearestExit(destFloor, startNode.id, destNode);
     const route = findRoute(startFloor.pathIndex, startNode.id, destNode.id);
-    return route ? { sameFloor: true, route } : null;
+    return route ? { sameFloor: true, route, destNode } : null;
   }
 
   const destNames = new Set(
@@ -63,6 +81,7 @@ export function planTrip(startFloor, startNode, destFloor, destNode, { preferSta
   );
   if (!destTransporter) return null;
 
+  destNode = nearestExit(destFloor, destTransporter.id, destNode);
   const legB = findRoute(destFloor.pathIndex, destTransporter.id, destNode.id);
   if (!legB) return null;
 
@@ -71,6 +90,7 @@ export function planTrip(startFloor, startNode, destFloor, destNode, { preferSta
     legA: { route: bestRoute, transporter: best },
     transporterName: best.label,
     legB: { route: legB, transporter: destTransporter },
+    destNode,
   };
 }
 
@@ -85,6 +105,7 @@ export function planTrip(startFloor, startNode, destFloor, destNode, { preferSta
  */
 export function planToLegs(plan, { startNode, destNode, startFloor, destFloor }) {
   if (!plan) return null;
+  destNode = plan.destNode || destNode; // planTrip may have swapped a picked exit for the nearest one
   if (plan.sameFloor) {
     if (plan.route.sameNode) return [];
     return [{ floor: startFloor, fromNode: startNode, toNode: destNode, route: plan.route, kind: 'destination' }];

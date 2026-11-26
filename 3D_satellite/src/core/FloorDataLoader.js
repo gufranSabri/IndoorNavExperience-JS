@@ -60,6 +60,9 @@ export function buildRouteNodes(floorData) {
         const flatLabel = flat && flat.className === className ? flat.label : null;
         label = flatLabel || objectLabelsByClass[className]?.[index] || `${className} ${index + 1}`;
       }
+      // Exits are never told apart by name — they are all just "Exit", and a trip
+      // to one routes to the nearest (see planTrip / resolveNearestByLabel).
+      if (node.class === 'exits') label = 'Exit';
     }
     nodes.push({
       id: node.id,

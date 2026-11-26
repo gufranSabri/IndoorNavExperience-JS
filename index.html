@@ -357,6 +357,7 @@
 
       tripPlanner.onPlan = ({ startFloor, startNode, destFloor, destNode, preferStairs }) => {
         const plan = planTrip(startFloor, startNode, destFloor, destNode, { preferStairs });
+        if (plan?.destNode) destNode = plan.destNode; // a picked "Exit" becomes the nearest exit
         tripPlanner.hide();
         lastItineraryArgs = { plan, startFloor, startNode, destFloor, destNode };
         itinerary.show(lastItineraryArgs);
